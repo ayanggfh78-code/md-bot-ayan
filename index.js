@@ -5,9 +5,7 @@ const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
-const ytdl = require('@distube/ytdl-core');
-const yts = require('yt-search');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay, downloadContentFromMessage, downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
 const P = require('pino');
 
 // =================== SETTINGS ===================
@@ -32,43 +30,6 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
-
-// =================== TELEGRAM BOT (DISABLED BY DEFAULT) ===================
-const tgToken = process.env.TELEGRAM_BOT_TOKEN;
-let tgBot = null;
-
-// Telegram bot sirf tab start hoga jab token valid hoga
-if (tgToken) {
-    try {
-        tgBot = new TelegramBot(tgToken, { 
-            polling: {
-                interval: 3000,
-                autoStart: false,
-                params: { timeout: 10 }
-            }
-        });
-        console.log('Telegram bot initialized');
-    } catch (error) {
-        console.log('Telegram bot failed:', error.message);
-        tgBot = null;
-    }
-}
-
-if (tgBot) {
-    tgBot.on('polling_error', (error) => {
-        console.log('Telegram polling error:', error.message);
-        // 409 Conflict error par polling stop karo
-        if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) {
-            console.log('Telegram conflict detected. Stopping polling...');
-            tgBot.stopPolling();
-        }
-        // 404 error par polling stop karo
-        if (error.message && error.message.includes('404')) {
-            console.log('Invalid Telegram token! Stopping...');
-            tgBot.stopPolling();
-        }
-    });
-}
 
 // =================== DATA STORAGE ===================
 const AUTH_DIR = './auth_info';
@@ -104,24 +65,6 @@ const bold = (text) => `*${text}*`;
 const italic = (text) => `_${text}_`;
 const mono = (text) => `\`${text}\``;
 
-// =================== WAITING MESSAGE FUNCTION ===================
-async function sendWaiting(sock, from, msg, action = 'processing') {
-    const messages = {
-        processing: '⏳ _Processing your request... Please wait..._',
-        searching: '🔍 _Searching for the information... Please wait..._',
-        downloading: '📥 _Downloading... This may take some time..._',
-        hacking: '💻 _Executing hack... This may take some time..._',
-        crashing: '💥 _Crashing target... This may take some time..._',
-        tracing: '📍 _Tracing location... This may take some time..._',
-        analyzing: '📊 _Analyzing data... This may take some time..._',
-        connecting: '🔗 _Connecting to server... Please wait..._'
-    };
-    
-    const waitMsg = messages[action] || messages.processing;
-    const sent = await sock.sendMessage(from, { text: waitMsg }, { quoted: msg });
-    return sent;
-}
-
 // =================== BOT SESSION CLASS ===================
 class BotSession {
     constructor(userId) {
@@ -129,12 +72,10 @@ class BotSession {
         this.sock = null;
         this.isConnected = false;
         this.aiEnabled = false;
-        this.autoReact = false;
         this.isPublic = true;
         this.authPath = path.join(AUTH_DIR, userId);
         this.processedMessages = new Set();
         this.phoneNumber = null;
-        this.ghostMode = false;
         this.tgChatId = null;
     }
 
@@ -197,10 +138,6 @@ class BotSession {
                         code = code?.match(/.{1,4}/g)?.join("-") || code;
                         this.sendLog(`Pairing Code: ${code}`, 'success');
 
-                        if (this.tgChatId && tgBot) {
-                            await tgBot.sendMessage(this.tgChatId, `*MA BOT - PAIRING CODE:*\n${mono(code)}\n\n_Enter this in WhatsApp Linked Devices_`, { parse_mode: 'Markdown' });
-                        }
-
                         const socketId = userSockets[this.userId];
                         if (socketId) io.to(socketId).emit('pairing-code', code);
                     } catch (err) {
@@ -259,14 +196,12 @@ class BotSession {
                         image: { url: settings.startimage },
                         caption: welcomeText 
                     });
-
-                    if (this.tgChatId && tgBot) {
-                        await tgBot.sendMessage(this.tgChatId, `*MA BOT CONNECTION SUCCESSFUL!*\n\nYour WhatsApp has been linked.`, { parse_mode: 'Markdown' });
-                    }
                 }
             });
 
             this.sock.ev.on('messages.upsert', async (m) => {
+                console.log('Message received:', m.type);
+                
                 if (m.type !== 'notify') return;
 
                 for (const msg of m.messages) {
@@ -280,6 +215,10 @@ class BotSession {
                         if (!messageContent) continue;
 
                         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
+
+                        console.log('Message text:', text);
+                        console.log('From:', from);
+                        console.log('Is me:', isMe);
 
                         if (isStatus) continue;
 
@@ -295,6 +234,9 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
 
+                            console.log('Command:', commandName);
+                            console.log('Args:', q);
+
                             const botNumber = jidNormalizedUser(this.sock.user.id);
                             const botNumberClean = botNumber.split('@')[0];
                             const sender = msg.key.participant || from;
@@ -303,17 +245,10 @@ class BotSession {
                             const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                             const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
 
-                            let isAdmin = isOwner;
-                            if (!isAdmin && isGroup) {
-                                try {
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const participant = groupMetadata.participants.find(p => p.id === sender);
-                                    isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
-                                } catch (e) {}
-                            }
+                            // ===== FIX: SAB KO COMMANDS USE KARNE DO =====
+                            // Owner-specific commands ke liye check alag hai
 
                             switch (commandName) {
-                                // ===== BASIC COMMANDS =====
                                 case 'menu': {
                                     const menuText = 
                                         bold('MA BOT MENU') + '\n\n' +
@@ -324,9 +259,6 @@ class BotSession {
                                         mono('.ping') + ' - Check bot response\n' +
                                         mono('.uptime') + ' - Show uptime\n' +
                                         mono('.stats') + ' - Show bot stats\n\n' +
-                                        bold('AI COMMANDS:') + '\n' +
-                                        mono('.ai') + ' - Ask AI anything\n' +
-                                        mono('.chatbot') + ' - Toggle chatbot\n\n' +
                                         bold('SIM & NUMBER INFO:') + '\n' +
                                         mono('.siminfo') + ' - SIM card info\n' +
                                         mono('.numberinfo') + ' - Number details\n' +
@@ -425,26 +357,20 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'analyzing');
-                                    
-                                    try {
-                                        await delay(2000);
-                                        const number = q.replace(/\D/g, '');
-                                        const simInfoText = 
-                                            bold('SIM CARD INFORMATION') + '\n\n' +
-                                            italic('Phone Number:') + ' ' + number + '\n' +
-                                            italic('Country:') + ' Pakistan 🇵🇰\n' +
-                                            italic('Country Code:') + ' +92\n' +
-                                            italic('Operator:') + ' Jazz / Warid / Zong / Telenor\n' +
-                                            italic('SIM Type:') + ' Postpaid / Prepaid\n' +
-                                            italic('Status:') + ' Active\n' +
-                                            italic('IMEI:') + ' ' + Math.floor(Math.random() * 900000000000000 + 100000000000000) + '\n' +
-                                            italic('SIM Card Number:') + ' ' + Math.floor(Math.random() * 9000000000 + 1000000000) + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: simInfoText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch SIM info!') }, { quoted: msg });
-                                    }
+                                    await delay(2000);
+                                    const number = q.replace(/\D/g, '');
+                                    const simInfoText = 
+                                        bold('SIM CARD INFORMATION') + '\n\n' +
+                                        italic('Phone Number:') + ' ' + number + '\n' +
+                                        italic('Country:') + ' Pakistan\n' +
+                                        italic('Country Code:') + ' +92\n' +
+                                        italic('Operator:') + ' Jazz / Warid / Zong / Telenor\n' +
+                                        italic('SIM Type:') + ' Postpaid / Prepaid\n' +
+                                        italic('Status:') + ' Active\n' +
+                                        italic('IMEI:') + ' ' + Math.floor(Math.random() * 900000000000000 + 100000000000000) + '\n' +
+                                        italic('SIM Card Number:') + ' ' + Math.floor(Math.random() * 9000000000 + 1000000000) + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: simInfoText }, { quoted: msg });
                                     break;
                                 }
 
@@ -454,26 +380,20 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'searching');
-                                    
-                                    try {
-                                        await delay(2000);
-                                        const number = q.replace(/\D/g, '');
-                                        const numberInfoText = 
-                                            bold('NUMBER INFORMATION') + '\n\n' +
-                                            italic('Phone Number:') + ' ' + number + '\n' +
-                                            italic('Country:') + ' Pakistan 🇵🇰\n' +
-                                            italic('Carrier:') + ' Jazz / Warid / Zong / Telenor\n' +
-                                            italic('Type:') + ' Mobile\n' +
-                                            italic('Location:') + ' Karachi, Sindh, Pakistan\n' +
-                                            italic('Timezone:') + ' GMT+5\n' +
-                                            italic('Network Status:') + ' Active\n' +
-                                            italic('Online:') + ' Yes\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: numberInfoText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch number info!') }, { quoted: msg });
-                                    }
+                                    await delay(2000);
+                                    const number = q.replace(/\D/g, '');
+                                    const numberInfoText = 
+                                        bold('NUMBER INFORMATION') + '\n\n' +
+                                        italic('Phone Number:') + ' ' + number + '\n' +
+                                        italic('Country:') + ' Pakistan\n' +
+                                        italic('Carrier:') + ' Jazz / Warid / Zong / Telenor\n' +
+                                        italic('Type:') + ' Mobile\n' +
+                                        italic('Location:') + ' Karachi, Sindh, Pakistan\n' +
+                                        italic('Timezone:') + ' GMT+5\n' +
+                                        italic('Network Status:') + ' Active\n' +
+                                        italic('Online:') + ' Yes\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: numberInfoText }, { quoted: msg });
                                     break;
                                 }
 
@@ -483,26 +403,20 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'tracing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const traceText = 
-                                            bold('LOCATION TRACING') + '\n\n' +
-                                            italic('Phone Number:') + ' ' + number + '\n' +
-                                            italic('Latitude:') + ' 24.8607° N\n' +
-                                            italic('Longitude:') + ' 67.0011° E\n' +
-                                            italic('Address:') + ' Karachi, Sindh, Pakistan\n' +
-                                            italic('City:') + ' Karachi\n' +
-                                            italic('State:') + ' Sindh\n' +
-                                            italic('Country:') + ' Pakistan\n' +
-                                            italic('Accuracy:') + ' ±50m\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: traceText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to trace location!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const traceText = 
+                                        bold('LOCATION TRACING') + '\n\n' +
+                                        italic('Phone Number:') + ' ' + number + '\n' +
+                                        italic('Latitude:') + ' 24.8607 N\n' +
+                                        italic('Longitude:') + ' 67.0011 E\n' +
+                                        italic('Address:') + ' Karachi, Sindh, Pakistan\n' +
+                                        italic('City:') + ' Karachi\n' +
+                                        italic('State:') + ' Sindh\n' +
+                                        italic('Country:') + ' Pakistan\n' +
+                                        italic('Accuracy:') + ' ±50m\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: traceText }, { quoted: msg });
                                     break;
                                 }
 
@@ -512,26 +426,20 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'analyzing');
-                                    
-                                    try {
-                                        await delay(2000);
-                                        const number = q.replace(/\D/g, '');
-                                        const callInfoText = 
-                                            bold('CALL INFORMATION') + '\n\n' +
-                                            italic('Phone Number:') + ' ' + number + '\n' +
-                                            italic('Call Type:') + ' Mobile\n' +
-                                            italic('Call Status:') + ' Active\n' +
-                                            italic('Last Call:') + ' ' + new Date().toLocaleDateString() + '\n' +
-                                            italic('Call Duration:') + ' 5 min 23 sec\n' +
-                                            italic('Missed Calls:') + ' 3\n' +
-                                            italic('Incoming Calls:') + ' 12\n' +
-                                            italic('Outgoing Calls:') + ' 8\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: callInfoText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch call info!') }, { quoted: msg });
-                                    }
+                                    await delay(2000);
+                                    const number = q.replace(/\D/g, '');
+                                    const callInfoText = 
+                                        bold('CALL INFORMATION') + '\n\n' +
+                                        italic('Phone Number:') + ' ' + number + '\n' +
+                                        italic('Call Type:') + ' Mobile\n' +
+                                        italic('Call Status:') + ' Active\n' +
+                                        italic('Last Call:') + ' ' + new Date().toLocaleDateString() + '\n' +
+                                        italic('Call Duration:') + ' 5 min 23 sec\n' +
+                                        italic('Missed Calls:') + ' 3\n' +
+                                        italic('Incoming Calls:') + ' 12\n' +
+                                        italic('Outgoing Calls:') + ' 8\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: callInfoText }, { quoted: msg });
                                     break;
                                 }
 
@@ -541,24 +449,18 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'searching');
-                                    
-                                    try {
-                                        await delay(2000);
-                                        const number = q.replace(/\D/g, '');
-                                        const waInfoText = 
-                                            bold('WHATSAPP NUMBER INFO') + '\n\n' +
-                                            italic('Phone Number:') + ' ' + number + '\n' +
-                                            italic('WhatsApp Status:') + ' Active ✅\n' +
-                                            italic('Last Seen:') + ' Today at ' + new Date().toLocaleTimeString() + '\n' +
-                                            italic('Profile Picture:') + ' Available\n' +
-                                            italic('About:') + ' Hello, I am using WhatsApp!\n' +
-                                            italic('Online Status:') + ' Online\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: waInfoText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch WhatsApp info!') }, { quoted: msg });
-                                    }
+                                    await delay(2000);
+                                    const number = q.replace(/\D/g, '');
+                                    const waInfoText = 
+                                        bold('WHATSAPP NUMBER INFO') + '\n\n' +
+                                        italic('Phone Number:') + ' ' + number + '\n' +
+                                        italic('WhatsApp Status:') + ' Active\n' +
+                                        italic('Last Seen:') + ' Today at ' + new Date().toLocaleTimeString() + '\n' +
+                                        italic('Profile Picture:') + ' Available\n' +
+                                        italic('About:') + ' Hello, I am using WhatsApp!\n' +
+                                        italic('Online Status:') + ' Online\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: waInfoText }, { quoted: msg });
                                     break;
                                 }
 
@@ -569,23 +471,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const crashText = 
-                                            bold('💥 CRASH ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Target crashed successfully! ✅\n' +
-                                            italic('Method:') + ' WhatsApp Protocol Exploit\n' +
-                                            italic('Payload:') + ' Malicious Message Injection\n\n' +
-                                            italic('Target device will restart in 30 seconds...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: crashText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to crash target!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const crashText = 
+                                        bold('CRASH ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Target crashed successfully!\n' +
+                                        italic('Method:') + ' WhatsApp Protocol Exploit\n' +
+                                        italic('Payload:') + ' Malicious Message Injection\n\n' +
+                                        italic('Target device will restart in 30 seconds...') + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: crashText }, { quoted: msg });
                                     break;
                                 }
 
@@ -595,23 +491,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const freezeText = 
-                                            bold('❄️ FREEZE ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Target frozen! ✅\n' +
-                                            italic('Method:') + ' Device Freeze Exploit\n' +
-                                            italic('Duration:') + ' 10 Minutes\n\n' +
-                                            italic('Target device is now frozen...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: freezeText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to freeze target!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const freezeText = 
+                                        bold('FREEZE ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Target frozen!\n' +
+                                        italic('Method:') + ' Device Freeze Exploit\n' +
+                                        italic('Duration:') + ' 10 Minutes\n\n' +
+                                        italic('Target device is now frozen...') + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: freezeText }, { quoted: msg });
                                     break;
                                 }
 
@@ -621,23 +511,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const lagText = 
-                                            bold('🐌 LAG ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Target lagging! ✅\n' +
-                                            italic('Method:') + ' Network Congestion Exploit\n' +
-                                            italic('Impact:') + ' High Latency + Slow Loading\n\n' +
-                                            italic('Target device speed reduced to 10%...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: lagText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to lag target!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const lagText = 
+                                        bold('LAG ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Target lagging!\n' +
+                                        italic('Method:') + ' Network Congestion Exploit\n' +
+                                        italic('Impact:') + ' High Latency + Slow Loading\n\n' +
+                                        italic('Target device speed reduced to 10%...') + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: lagText }, { quoted: msg });
                                     break;
                                 }
 
@@ -647,23 +531,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const bugText = 
-                                            bold('🐛 BUG ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Bug injected! ✅\n' +
-                                            italic('Method:') + ' Malicious Code Injection\n' +
-                                            italic('Payload:') + ' Zero-Day Exploit\n\n' +
-                                            italic('Target device will experience random crashes...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: bugText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to inject bug!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const bugText = 
+                                        bold('BUG ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Bug injected!\n' +
+                                        italic('Method:') + ' Malicious Code Injection\n' +
+                                        italic('Payload:') + ' Zero-Day Exploit\n\n' +
+                                        italic('Target device will experience random crashes...') + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: bugText }, { quoted: msg });
                                     break;
                                 }
 
@@ -673,23 +551,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const vibrateText = 
-                                            bold('📳 VIBRATION ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Vibration activated! ✅\n' +
-                                            italic('Method:') + ' Device Control Exploit\n' +
-                                            italic('Duration:') + ' 30 Seconds\n\n' +
-                                            italic('Target device vibrating continuously...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: vibrateText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to activate vibration!') }, { quoted: msg });
-                                    }
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const vibrateText = 
+                                        bold('VIBRATION ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Vibration activated!\n' +
+                                        italic('Method:') + ' Device Control Exploit\n' +
+                                        italic('Duration:') + ' 30 Seconds\n\n' +
+                                        italic('Target device vibrating continuously...') + '\n\n' +
+                                        bold('© MA Developers');
+                                    await this.sock.sendMessage(from, { text: vibrateText }, { quoted: msg });
                                     break;
                                 }
 
@@ -699,221 +571,17 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
-                                    
-                                    try {
-                                        await delay(3000);
-                                        const number = q.replace(/\D/g, '');
-                                        const tornadoText = 
-                                            bold('🌪️ TORNADO ATTACK INITIATED') + '\n\n' +
-                                            italic('Target:') + ' ' + number + '\n' +
-                                            italic('Status:') + ' Tornado activated! ✅\n' +
-                                            italic('Method:') + ' System Overload Exploit\n' +
-                                            italic('Impact:') + ' Device will be destroyed\n\n' +
-                                            italic('Target device will be wiped clean...') + '\n\n' +
-                                            bold('© MA Developers');
-                                        await this.sock.sendMessage(from, { text: tornadoText }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to activate tornado!') }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== YOUTUBE DOWNLOADER =====
-                                case 'yt': case 'youtube': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a YouTube link!') + '\n\n' + italic('Example:') + ' ' + mono('.yt https://youtube.com/watch?v=...') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
-                                    
-                                    try {
-                                        const videoId = ytdl.getVideoID(q);
-                                        const info = await ytdl.getInfo(videoId);
-                                        
-                                        const title = info.videoDetails.title;
-                                        const duration = info.videoDetails.lengthSeconds;
-                                        
-                                        const videoInfoText = 
-                                            bold('YOUTUBE VIDEO FOUND') + '\n\n' +
-                                            italic('Title:') + ' ' + title + '\n' +
-                                            italic('Duration:') + ' ' + Math.floor(duration / 60) + ':' + (duration % 60).toString().padStart(2, '0') + '\n' +
-                                            italic('Channel:') + ' ' + info.videoDetails.author.name + '\n\n' +
-                                            bold('Downloading video... Please wait...');
-                                        
-                                        await this.sock.sendMessage(from, { text: videoInfoText }, { quoted: msg });
-                                        
-                                        const stream = ytdl(videoId, { quality: 'highestvideo' });
-                                        const chunks = [];
-                                        for await (const chunk of stream) {
-                                            chunks.push(chunk);
-                                        }
-                                        const buffer = Buffer.concat(chunks);
-                                        
-                                        await this.sock.sendMessage(from, { 
-                                            video: buffer, 
-                                            caption: bold('MA BOT DOWNLOAD') + '\n\n' + title + '\n\n' + bold('© MA Developers'),
-                                            mimetype: 'video/mp4'
-                                        }, { quoted: msg });
-                                        
-                                        this.sendLog(`YouTube download successful: ${title}`, 'success');
-                                    } catch (e) {
-                                        this.sendLog(`YouTube download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== TIKTOK DOWNLOADER =====
-                                case 'tt': case 'tiktok': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a TikTok link!') + '\n\n' + italic('Example:') + ' ' + mono('.tt https://tiktok.com/@user/video/...') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
-                                    
-                                    try {
-                                        const tiktokUrl = q;
-                                        const apiUrl = `https://api.siputzx.my.id/api/down/tiktok?url=${encodeURIComponent(tiktokUrl)}`;
-                                        const response = await axios.get(apiUrl);
-                                        
-                                        if (response.data && response.data.status) {
-                                            const videoUrl = response.data.data.video || response.data.data.play;
-                                            
-                                            if (videoUrl) {
-                                                const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer' });
-                                                const videoBuffer = Buffer.from(videoRes.data);
-                                                
-                                                await this.sock.sendMessage(from, { 
-                                                    video: videoBuffer, 
-                                                    caption: bold('MA BOT TIKTOK DOWNLOAD') + '\n\n' + bold('© MA Developers'),
-                                                    mimetype: 'video/mp4'
-                                                }, { quoted: msg });
-                                                
-                                                this.sendLog('TikTok download successful', 'success');
-                                            } else {
-                                                throw new Error('Video URL not found');
-                                            }
-                                        } else {
-                                            throw new Error('Invalid TikTok response');
-                                        }
-                                    } catch (e) {
-                                        this.sendLog(`TikTok download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download TikTok video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== INSTAGRAM DOWNLOADER =====
-                                case 'insta': case 'instagram': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide an Instagram link!') + '\n\n' + italic('Example:') + ' ' + mono('.insta https://instagram.com/p/...') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
-                                    
-                                    try {
-                                        const instaUrl = q;
-                                        const apiUrl = `https://api.siputzx.my.id/api/down/instagram?url=${encodeURIComponent(instaUrl)}`;
-                                        const response = await axios.get(apiUrl);
-                                        
-                                        if (response.data && response.data.status) {
-                                            const mediaUrl = response.data.data.url || response.data.data.video || response.data.data.image;
-                                            
-                                            if (mediaUrl) {
-                                                const mediaRes = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
-                                                const mediaBuffer = Buffer.from(mediaRes.data);
-                                                
-                                                await this.sock.sendMessage(from, { 
-                                                    video: mediaBuffer, 
-                                                    caption: bold('MA BOT INSTAGRAM DOWNLOAD') + '\n\n' + bold('© MA Developers'),
-                                                    mimetype: 'video/mp4'
-                                                }, { quoted: msg });
-                                                
-                                                this.sendLog('Instagram download successful', 'success');
-                                            } else {
-                                                throw new Error('Media URL not found');
-                                            }
-                                        } else {
-                                            throw new Error('Invalid Instagram response');
-                                        }
-                                    } catch (e) {
-                                        this.sendLog(`Instagram download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download Instagram media!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== GROUP COMMANDS =====
-                                case 'tagall': {
-                                    if (!isAdmin) {
-                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const mentions = groupMetadata.participants.map(p => p.id);
-                                    await this.sock.sendMessage(from, { text: bold('MA BOT - TAGGING ALL') + '\n\n' + (q || 'Hello everyone!'), mentions }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'hidetag': {
-                                    if (!isAdmin) {
-                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const mentions = groupMetadata.participants.map(p => p.id);
-                                    await this.sock.sendMessage(from, { text: (q || 'Hello!'), mentions });
-                                    break;
-                                }
-
-                                case 'groupinfo': {
-                                    if (!isGroup) {
-                                        await this.sock.sendMessage(from, { text: bold('This command is for groups only!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const text = 
-                                        bold('GROUP INFO') + '\n\n' +
-                                        italic('Name:') + ' ' + groupMetadata.subject + '\n' +
-                                        italic('Members:') + ' ' + groupMetadata.participants.length + '\n' +
-                                        italic('Admins:') + ' ' + groupMetadata.participants.filter(p => p.admin).length + '\n' +
-                                        italic('Owner:') + ' ' + (groupMetadata.owner ? groupMetadata.owner.split('@')[0] : 'Unknown') + '\n\n' +
+                                    await delay(3000);
+                                    const number = q.replace(/\D/g, '');
+                                    const tornadoText = 
+                                        bold('TORNADO ATTACK INITIATED') + '\n\n' +
+                                        italic('Target:') + ' ' + number + '\n' +
+                                        italic('Status:') + ' Tornado activated!\n' +
+                                        italic('Method:') + ' System Overload Exploit\n' +
+                                        italic('Impact:') + ' Device will be destroyed\n\n' +
+                                        italic('Target device will be wiped clean...') + '\n\n' +
                                         bold('© MA Developers');
-                                    
-                                    await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== TOOLS COMMANDS =====
-                                case 'calc': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a calculation!') + '\n\n' + italic('Example:') + ' ' + mono('.calc 2+2') }, { quoted: msg });
-                                        break;
-                                    }
-                                    try {
-                                        const result = eval(q);
-                                        await this.sock.sendMessage(from, { text: bold('Result:') + ' ' + result }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Invalid calculation!') }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                case 'shorturl': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a URL!') + '\n\n' + italic('Example:') + ' ' + mono('.shorturl https://example.com') }, { quoted: msg });
-                                        break;
-                                    }
-                                    try {
-                                        const res = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`);
-                                        await this.sock.sendMessage(from, { text: bold('Shortened URL:') + '\n' + mono(res.data) }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to shorten URL!') }, { quoted: msg });
-                                    }
+                                    await this.sock.sendMessage(from, { text: tornadoText }, { quoted: msg });
                                     break;
                                 }
 
@@ -957,7 +625,54 @@ class BotSession {
                                     break;
                                 }
 
-                                // ===== BROADCAST =====
+                                // ===== TOOLS COMMANDS =====
+                                case 'calc': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a calculation!') + '\n\n' + italic('Example:') + ' ' + mono('.calc 2+2') }, { quoted: msg });
+                                        break;
+                                    }
+                                    try {
+                                        const result = eval(q);
+                                        await this.sock.sendMessage(from, { text: bold('Result:') + ' ' + result }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Invalid calculation!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'shorturl': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a URL!') + '\n\n' + italic('Example:') + ' ' + mono('.shorturl https://example.com') }, { quoted: msg });
+                                        break;
+                                    }
+                                    try {
+                                        const res = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`);
+                                        await this.sock.sendMessage(from, { text: bold('Shortened URL:') + '\n' + mono(res.data) }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to shorten URL!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'ai': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.ai Hello') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const aiResponse = await this.getAIResponse(q);
+                                    await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'chatbot': {
+                                    this.aiEnabled = !this.aiEnabled;
+                                    const status = this.aiEnabled ? bold('ENABLED') : bold('DISABLED');
+                                    await this.sock.sendMessage(from, { text: italic('Chatbot:') + ' ' + status }, { quoted: msg });
+                                    break;
+                                }
+
+                                // ===== BROADCAST (OWNER ONLY) =====
                                 case 'bc': case 'broadcast': {
                                     if (!isOwner) {
                                         await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
@@ -980,6 +695,7 @@ class BotSession {
                                     break;
                                 }
 
+                                // ===== SET NAME (OWNER ONLY) =====
                                 case 'setname': {
                                     if (!isOwner) {
                                         await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
@@ -995,28 +711,8 @@ class BotSession {
                                     break;
                                 }
 
-                                // ===== AI =====
-                                case 'ai': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.ai Hello') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'processing');
-                                    
-                                    const aiResponse = await this.getAIResponse(q);
-                                    await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'chatbot': {
-                                    this.aiEnabled = !this.aiEnabled;
-                                    const status = this.aiEnabled ? bold('ENABLED') : bold('DISABLED');
-                                    await this.sock.sendMessage(from, { text: italic('Chatbot:') + ' ' + status }, { quoted: msg });
-                                    break;
-                                }
-
                                 default: {
+                                    await this.sock.sendMessage(from, { text: bold('Command not found!') + '\n\n' + italic('Type') + ' ' + mono('.menu') + ' ' + italic('to see all commands') }, { quoted: msg });
                                     break;
                                 }
                             }
