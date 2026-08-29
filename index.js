@@ -323,7 +323,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(2000);
                                     const number = q.replace(/\D/g, '');
                                     const simInfoText = 
                                         bold('SIM CARD INFORMATION') + '\n\n' +
@@ -342,7 +341,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(2000);
                                     const number = q.replace(/\D/g, '');
                                     const numberInfoText = 
                                         bold('NUMBER INFORMATION') + '\n\n' +
@@ -361,7 +359,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const traceText = 
                                         bold('LOCATION TRACING') + '\n\n' +
@@ -378,7 +375,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(2000);
                                     const number = q.replace(/\D/g, '');
                                     const callInfoText = 
                                         bold('CALL INFORMATION') + '\n\n' +
@@ -396,7 +392,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(2000);
                                     const number = q.replace(/\D/g, '');
                                     const waInfoText = 
                                         bold('WHATSAPP NUMBER INFO') + '\n\n' +
@@ -414,7 +409,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const crashText = 
                                         bold('CRASH ATTACK INITIATED') + '\n\n' +
@@ -431,7 +425,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const freezeText = 
                                         bold('FREEZE ATTACK INITIATED') + '\n\n' +
@@ -448,7 +441,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const lagText = 
                                         bold('LAG ATTACK INITIATED') + '\n\n' +
@@ -465,7 +457,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const bugText = 
                                         bold('BUG ATTACK INITIATED') + '\n\n' +
@@ -482,7 +473,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const vibrateText = 
                                         bold('VIBRATION ATTACK INITIATED') + '\n\n' +
@@ -499,7 +489,6 @@ class BotSession {
                                         break;
                                     }
                                     
-                                    await delay(3000);
                                     const number = q.replace(/\D/g, '');
                                     const tornadoText = 
                                         bold('TORNADO ATTACK INITIATED') + '\n\n' +
