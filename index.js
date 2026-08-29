@@ -33,13 +33,20 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
-// =================== TELEGRAM BOT ===================
+// =================== TELEGRAM BOT (DISABLED BY DEFAULT) ===================
 const tgToken = process.env.TELEGRAM_BOT_TOKEN;
 let tgBot = null;
 
+// Telegram bot sirf tab start hoga jab token valid hoga
 if (tgToken) {
     try {
-        tgBot = new TelegramBot(tgToken, { polling: true });
+        tgBot = new TelegramBot(tgToken, { 
+            polling: {
+                interval: 3000,
+                autoStart: false,
+                params: { timeout: 10 }
+            }
+        });
         console.log('Telegram bot initialized');
     } catch (error) {
         console.log('Telegram bot failed:', error.message);
@@ -48,50 +55,18 @@ if (tgToken) {
 }
 
 if (tgBot) {
-    tgBot.onText(/\/start/, (msg) => {
-        const chatId = msg.chat.id;
-        tgBot.sendMessage(chatId, 
-            `*MA BOT* 🤖\n\n` +
-            `Welcome to MA BOT!\n\n` +
-            `*To Connect WhatsApp:*\n` +
-            `Send your WhatsApp number with country code.\n\n` +
-            `*Example:*\n` +
-            `\`923000000000\`\n\n` +
-            `*Developed by:* MA Developers\n` +
-            `*Founder:* Muhammad Ayan`,
-            { parse_mode: 'Markdown' }
-        );
-    });
-
-    tgBot.on('message', async (msg) => {
-        const chatId = msg.chat.id;
-        const text = msg.text;
-
-        if (!text || text.startsWith('/')) return;
-
-        if (/^\d+$/.test(text)) {
-            const userId = `tg_${chatId}`;
-            
-            if (!sessions[userId]) {
-                sessions[userId] = new BotSession(userId);
-            }
-
-            sessions[userId].tgChatId = chatId;
-
-            tgBot.sendMessage(chatId, 
-                `*MA BOT* 🤖\n\n` +
-                `Requesting pairing code for:\n` +
-                `\`${text}\`\n\n` +
-                `Please wait...`,
-                { parse_mode: 'Markdown' }
-            );
-
-            await sessions[userId].initialize(text);
-        }
-    });
-
     tgBot.on('polling_error', (error) => {
         console.log('Telegram polling error:', error.message);
+        // 409 Conflict error par polling stop karo
+        if (error.message && (error.message.includes('409') || error.message.includes('Conflict'))) {
+            console.log('Telegram conflict detected. Stopping polling...');
+            tgBot.stopPolling();
+        }
+        // 404 error par polling stop karo
+        if (error.message && error.message.includes('404')) {
+            console.log('Invalid Telegram token! Stopping...');
+            tgBot.stopPolling();
+        }
     });
 }
 
@@ -754,376 +729,12 @@ class BotSession {
                                     const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
                                     
                                     try {
-                                        // Extract video ID
                                         const videoId = ytdl.getVideoID(q);
                                         const info = await ytdl.getInfo(videoId);
                                         
                                         const title = info.videoDetails.title;
                                         const duration = info.videoDetails.lengthSeconds;
-                                        const thumbnail = info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url;
                                         
                                         const videoInfoText = 
                                             bold('YOUTUBE VIDEO FOUND') + '\n\n' +
-                                            italic('Title:') + ' ' + title + '\n' +
-                                            italic('Duration:') + ' ' + Math.floor(duration / 60) + ':' + (duration % 60).toString().padStart(2, '0') + '\n' +
-                                            italic('Channel:') + ' ' + info.videoDetails.author.name + '\n\n' +
-                                            bold('Downloading video... Please wait...');
-                                        
-                                        await this.sock.sendMessage(from, { text: videoInfoText }, { quoted: msg });
-                                        
-                                        // Download video
-                                        const stream = ytdl(videoId, { quality: 'highestvideo' });
-                                        const chunks = [];
-                                        for await (const chunk of stream) {
-                                            chunks.push(chunk);
-                                        }
-                                        const buffer = Buffer.concat(chunks);
-                                        
-                                        await this.sock.sendMessage(from, { 
-                                            video: buffer, 
-                                            caption: bold('MA BOT DOWNLOAD') + '\n\n' + title + '\n\n' + bold('© MA Developers'),
-                                            mimetype: 'video/mp4'
-                                        }, { quoted: msg });
-                                        
-                                        this.sendLog(`YouTube download successful: ${title}`, 'success');
-                                    } catch (e) {
-                                        this.sendLog(`YouTube download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== TIKTOK DOWNLOADER =====
-                                case 'tt': case 'tiktok': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a TikTok link!') + '\n\n' + italic('Example:') + ' ' + mono('.tt https://tiktok.com/@user/video/...') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
-                                    
-                                    try {
-                                        const tiktokUrl = q;
-                                        
-                                        // TikTok API (using public API)
-                                        const apiUrl = `https://api.siputzx.my.id/api/down/tiktok?url=${encodeURIComponent(tiktokUrl)}`;
-                                        const response = await axios.get(apiUrl);
-                                        
-                                        if (response.data && response.data.status) {
-                                            const videoUrl = response.data.data.video || response.data.data.play;
-                                            
-                                            if (videoUrl) {
-                                                const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer' });
-                                                const videoBuffer = Buffer.from(videoRes.data);
-                                                
-                                                await this.sock.sendMessage(from, { 
-                                                    video: videoBuffer, 
-                                                    caption: bold('MA BOT TIKTOK DOWNLOAD') + '\n\n' + bold('© MA Developers'),
-                                                    mimetype: 'video/mp4'
-                                                }, { quoted: msg });
-                                                
-                                                this.sendLog('TikTok download successful', 'success');
-                                            } else {
-                                                throw new Error('Video URL not found');
-                                            }
-                                        } else {
-                                            throw new Error('Invalid TikTok response');
-                                        }
-                                    } catch (e) {
-                                        this.sendLog(`TikTok download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download TikTok video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== INSTAGRAM DOWNLOADER =====
-                                case 'insta': case 'instagram': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide an Instagram link!') + '\n\n' + italic('Example:') + ' ' + mono('.insta https://instagram.com/p/...') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
-                                    
-                                    try {
-                                        const instaUrl = q;
-                                        
-                                        // Instagram API (using public API)
-                                        const apiUrl = `https://api.siputzx.my.id/api/down/instagram?url=${encodeURIComponent(instaUrl)}`;
-                                        const response = await axios.get(apiUrl);
-                                        
-                                        if (response.data && response.data.status) {
-                                            const mediaUrl = response.data.data.url || response.data.data.video || response.data.data.image;
-                                            
-                                            if (mediaUrl) {
-                                                const mediaRes = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
-                                                const mediaBuffer = Buffer.from(mediaRes.data);
-                                                
-                                                await this.sock.sendMessage(from, { 
-                                                    video: mediaBuffer, 
-                                                    caption: bold('MA BOT INSTAGRAM DOWNLOAD') + '\n\n' + bold('© MA Developers'),
-                                                    mimetype: 'video/mp4'
-                                                }, { quoted: msg });
-                                                
-                                                this.sendLog('Instagram download successful', 'success');
-                                            } else {
-                                                throw new Error('Media URL not found');
-                                            }
-                                        } else {
-                                            throw new Error('Invalid Instagram response');
-                                        }
-                                    } catch (e) {
-                                        this.sendLog(`Instagram download error: ${e.message}`, 'error');
-                                        await this.sock.sendMessage(from, { text: bold('Failed to download Instagram media!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== GROUP COMMANDS =====
-                                case 'tagall': {
-                                    if (!isAdmin) {
-                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const mentions = groupMetadata.participants.map(p => p.id);
-                                    await this.sock.sendMessage(from, { text: bold('MA BOT - TAGGING ALL') + '\n\n' + (q || 'Hello everyone!'), mentions }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'hidetag': {
-                                    if (!isAdmin) {
-                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const mentions = groupMetadata.participants.map(p => p.id);
-                                    await this.sock.sendMessage(from, { text: (q || 'Hello!'), mentions });
-                                    break;
-                                }
-
-                                case 'groupinfo': {
-                                    if (!isGroup) {
-                                        await this.sock.sendMessage(from, { text: bold('This command is for groups only!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const groupMetadata = await this.sock.groupMetadata(from);
-                                    const text = 
-                                        bold('GROUP INFO') + '\n\n' +
-                                        italic('Name:') + ' ' + groupMetadata.subject + '\n' +
-                                        italic('Members:') + ' ' + groupMetadata.participants.length + '\n' +
-                                        italic('Admins:') + ' ' + groupMetadata.participants.filter(p => p.admin).length + '\n' +
-                                        italic('Owner:') + ' ' + (groupMetadata.owner ? groupMetadata.owner.split('@')[0] : 'Unknown') + '\n\n' +
-                                        bold('© MA Developers');
-                                    
-                                    await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== TOOLS COMMANDS =====
-                                case 'calc': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a calculation!') + '\n\n' + italic('Example:') + ' ' + mono('.calc 2+2') }, { quoted: msg });
-                                        break;
-                                    }
-                                    try {
-                                        const result = eval(q);
-                                        await this.sock.sendMessage(from, { text: bold('Result:') + ' ' + result }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Invalid calculation!') }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                case 'shorturl': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a URL!') + '\n\n' + italic('Example:') + ' ' + mono('.shorturl https://example.com') }, { quoted: msg });
-                                        break;
-                                    }
-                                    try {
-                                        const res = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`);
-                                        await this.sock.sendMessage(from, { text: bold('Shortened URL:') + '\n' + mono(res.data) }, { quoted: msg });
-                                    } catch (e) {
-                                        await this.sock.sendMessage(from, { text: bold('Failed to shorten URL!') }, { quoted: msg });
-                                    }
-                                    break;
-                                }
-
-                                // ===== FUN COMMANDS =====
-                                case 'joke': {
-                                    const jokes = [
-                                        'Why do programmers prefer dark mode? Because light attracts bugs!',
-                                        'Why did the developer go broke? Because he used up all his cache!',
-                                        'Why do Java developers wear glasses? Because they don\'t C#!',
-                                        'Why did the computer go to the doctor? It caught a virus!',
-                                        'Why don\'t programmers like nature? Too many bugs!'
-                                    ];
-                                    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-                                    await this.sock.sendMessage(from, { text: bold('Here\'s a joke:') + '\n\n' + randomJoke }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'fact': {
-                                    const facts = [
-                                        'Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs!',
-                                        'The human brain has about 86 billion neurons!',
-                                        'Octopuses have three hearts!',
-                                        'A group of flamingos is called a flamboyance!',
-                                        'The Eiffel Tower can be 15 cm taller during summer!'
-                                    ];
-                                    const randomFact = facts[Math.floor(Math.random() * facts.length)];
-                                    await this.sock.sendMessage(from, { text: bold('Did you know?') + '\n\n' + randomFact }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'quote': {
-                                    const quotes = [
-                                        'The only way to do great work is to love what you do. - Steve Jobs',
-                                        'Life is what happens when you\'re busy making other plans. - John Lennon',
-                                        'Strive not to be a success, but rather to be of value. - Albert Einstein',
-                                        'Believe you can and you\'re halfway there. - Theodore Roosevelt',
-                                        'It does not matter how slowly you go as long as you do not stop. - Confucius'
-                                    ];
-                                    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-                                    await this.sock.sendMessage(from, { text: bold('Quote of the day:') + '\n\n' + randomQuote }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== BROADCAST =====
-                                case 'bc': case 'broadcast': {
-                                    if (!isOwner) {
-                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.bc Hello everyone') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const chats = Object.keys(this.sock.chats || {});
-                                    let count = 0;
-                                    for (const chat of chats) {
-                                        try {
-                                            await this.sock.sendMessage(chat, { text: bold('MA BOT BROADCAST') + '\n\n' + q + '\n\n' + bold('© MA Developers') });
-                                            count++;
-                                            await delay(100);
-                                        } catch (e) {}
-                                    }
-                                    await this.sock.sendMessage(from, { text: bold('Broadcast sent to') + ' ' + count + ' ' + bold('chats!') }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'setname': {
-                                    if (!isOwner) {
-                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a name!') + '\n\n' + italic('Example:') + ' ' + mono('.setname MA BOT') }, { quoted: msg });
-                                        break;
-                                    }
-                                    botData.userNames[this.userId] = q;
-                                    saveBotData();
-                                    await this.sock.sendMessage(from, { text: bold('Bot name set to:') + ' ' + q }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== AI =====
-                                case 'ai': {
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.ai Hello') }, { quoted: msg });
-                                        break;
-                                    }
-                                    
-                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'processing');
-                                    
-                                    const aiResponse = await this.getAIResponse(q);
-                                    await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
-                                    break;
-                                }
-
-                                case 'chatbot': {
-                                    this.aiEnabled = !this.aiEnabled;
-                                    const status = this.aiEnabled ? bold('ENABLED') : bold('DISABLED');
-                                    await this.sock.sendMessage(from, { text: italic('Chatbot:') + ' ' + status }, { quoted: msg });
-                                    break;
-                                }
-
-                                default: {
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Message Processing Error:', e);
-                    }
-                }
-            });
-
-        } catch (err) {
-            this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
-            setTimeout(() => this.initialize(), 10000);
-        }
-    }
-}
-
-// =================== LOAD EXISTING SESSIONS ===================
-async function loadExistingSessions() {
-    try {
-        const authDirs = await fs.readdir(AUTH_DIR);
-        for (const userId of authDirs) {
-            const authPath = path.join(AUTH_DIR, userId);
-            const stats = await fs.stat(authPath);
-            if (stats.isDirectory()) {
-                const credsFile = path.join(authPath, 'creds.json');
-                if (fs.existsSync(credsFile)) {
-                    console.log(`[MA BOT] Found existing session: ${userId}. Initializing...`);
-                    if (!sessions[userId]) {
-                        sessions[userId] = new BotSession(userId);
-                        sessions[userId].initialize().catch(err => {
-                            console.error(`Failed to auto-initialize session ${userId}:`, err.message);
-                        });
-                    }
-                }
-            }
-        }
-    } catch (err) {
-        console.error('[MA BOT] Error loading sessions:', err.message);
-    }
-}
-
-// =================== SOCKET.IO ===================
-io.on('connection', (socket) => {
-    socket.on('set-user', (userId) => {
-        userSockets[userId] = socket.id;
-        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
-        sessions[userId].sendConnectionStatus();
-    });
-
-    socket.on('pair-request', async ({ userId, number }) => {
-        if (sessions[userId]) {
-            sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
-        } else {
-            sessions[userId] = new BotSession(userId);
-            sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        for (const [userId, socketId] of Object.entries(userSockets)) {
-            if (socketId === socket.id) {
-                delete userSockets[userId];
-                break;
-            }
-        }
-    });
-});
-
-// =================== START SERVER ===================
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, async () => {
-    console.log(`MA BOT v${settings.version} Server running on port ${PORT}`);
-    console.log(`MA Developers | Muhammad Ayan`);
-    await loadExistingSessions();
-});
+                                            italic('Title
