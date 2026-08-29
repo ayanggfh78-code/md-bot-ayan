@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MA BOT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
+body{background:#0a0a0a;color:#fff;min-height:100vh;}
+nav{background:#111;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand img{width:40px;height:40px;border-radius:50%;}
+.brand .name{font-size:1.2rem;font-weight:bold;color:#00ff88;}
+.nav-links a{color:#aaa;text-decoration:none;margin:0 15px;font-size:0.9rem;}
+.nav-links a:hover{color:#00ff88;}
+header{text-align:center;padding:60px 20px;}
+header h1{font-size:2.5rem;color:#00ff88;margin-bottom:10px;}
+header p{color:#aaa;font-size:1.1rem;}
+.container{max-width:1000px;margin:0 auto;padding:20px;}
+.card{background:#111;border:1px solid #333;border-radius:10px;padding:25px;margin-bottom:20px;}
+.card h2{color:#00ff88;margin-bottom:15px;font-size:1.2rem;}
+.input-group{display:flex;gap:10px;margin-bottom:15px;}
+.input-group input{flex:1;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:5px;color:#fff;font-size:1rem;}
+.btn{background:#00ff88;color:#000;padding:12px 20px;border:none;border-radius:5px;font-weight:bold;cursor:pointer;font-size:1rem;}
+.btn:hover{opacity:0.9;}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+#status{margin-top:15px;padding:15px;border-radius:5px;display:none;font-size:0.9rem;}
+#status.show{display:block;}
+.status-success{background:#003300;color:#00ff88;border-left:3px solid #00ff88;}
+.status-error{background:#330000;color:#ff4444;border-left:3px solid #ff4444;}
+footer{text-align:center;padding:30px;color:#555;border-top:1px solid #333;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <img src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png" alt="MA BOT">
+    <div>
+      <div class="name">MA BOT</div>
+      <div style="font-size:0.7rem;color:#888;">WhatsApp Bot - 24/7 Online</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#connect">Connect</a>
+    <a href="#features">Features</a>
+  </div>
+</nav>
+
+<header>
+  <h1>🤖 MA BOT</h1>
+  <p>Premium WhatsApp Automation Bot by <strong style="color:#00ff88;">MA Developers</strong></p>
+  <p style="margin-top:10px;font-size:0.9rem;color:#888;">Founder & Developer: Muhammad Ayan</p>
+</header>
+
+<div class="container">
+  <div class="card" id="connect">
+    <h2>📱 Connect WhatsApp</h2>
+    <p style="color:#888;margin-bottom:15px;">Enter your WhatsApp number with country code (no +, no spaces)</p>
+    <div class="input-group">
+      <input type="tel" id="phone" placeholder="e.g. 923000000000">
+    </div>
+    <button class="btn" id="requestPairing">Request Pairing Code</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="features">
+    <h2>✨ Features</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;">
+      <div style="padding:15px;background:#1a1a1a;border-radius:5px;"><i class="fas fa-bolt" style="color:#00ff88;"></i><br><strong>Fast & Reliable</strong><br><span style="color:#888;font-size:0.85rem;">24/7 Active</span></div>
+      <div style="padding:15px;background:#1a1a1a;border-radius:5px;"><i class="fas fa-robot" style="color:#00ff88;"></i><br><strong>AI Powered</strong><br><span style="color:#888;font-size:0.85rem;">ChatGPT Integration</span></div>
+      <div style="padding:15px;background:#1a1a1a;border-radius:5px;"><i class="fas fa-layer-group" style="color:#00ff88;"></i><br><strong>120+ Commands</strong><br><span style="color:#888;font-size:0.85rem;">Full Automation</span></div>
+      <div style="padding:15px;background:#1a1a1a;border-radius:5px;"><i class="fas fa-shield-alt" style="color:#00ff88;"></i><br><strong>Secure</strong><br><span style="color:#888;font-size:0.85rem;">Protected Session</span></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © MA Developers | Muhammad Ayan
+</footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const phoneInput = document.getElementById('phone');
+const requestBtn = document.getElementById('requestPairing');
+const statusEl = document.getElementById('status');
+
+function setStatus(msg, type) {
+  statusEl.innerText = msg;
+  statusEl.className = 'show ' + (type || '');
+}
+
+requestBtn.addEventListener('click', async () => {
+  const number = phoneInput.value.replace(/\D/g, '');
+  if (!number || number.length < 10) {
+    setStatus('Please enter a valid phone number!', 'status-error');
+    return;
+  }
+
+  requestBtn.disabled = true;
+  requestBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Requesting...';
+  setStatus('Sending pairing request...', 'status-success');
+
+  const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+  socket.emit('set-user', userId);
+  socket.emit('pair-request', { userId, number });
+});
+
+socket.on('pairing-code', (code) => {
+  requestBtn.disabled = false;
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
+  setStatus('Pairing code: ' + code + '\n\nEnter this in WhatsApp → Linked Devices → Link a Device', 'status-success');
+});
+
+socket.on('pair-error', (msg) => {
+  requestBtn.disabled = false;
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
+  setStatus(msg || 'Failed to generate code. Try again.', 'status-error');
+});
+
+socket.on('connection-status', (status) => {
+  if (status && status.connected) {
+    setStatus('✅ Connected successfully!', 'status-success');
+    setTimeout(() => location.reload(), 3000);
+  }
+});
+</script>
+</body>
+</html>
