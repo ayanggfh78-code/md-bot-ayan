@@ -216,10 +216,6 @@ class BotSession {
 
                         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
 
-                        console.log('Message text:', text);
-                        console.log('From:', from);
-                        console.log('Is me:', isMe);
-
                         if (isStatus) continue;
 
                         const msgId = msg.key.id;
@@ -234,9 +230,6 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
 
-                            console.log('Command:', commandName);
-                            console.log('Args:', q);
-
                             const botNumber = jidNormalizedUser(this.sock.user.id);
                             const botNumberClean = botNumber.split('@')[0];
                             const sender = msg.key.participant || from;
@@ -245,16 +238,10 @@ class BotSession {
                             const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                             const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
 
-                            // ===== FIX: SAB KO COMMANDS USE KARNE DO =====
-                            // Owner-specific commands ke liye check alag hai
-
                             switch (commandName) {
                                 case 'menu': {
                                     const menuText = 
                                         bold('MA BOT MENU') + '\n\n' +
-                                        bold('OWNER COMMANDS:') + '\n' +
-                                        mono('.owner') + ' - Show owner info\n' +
-                                        mono('.bc') + ' - Broadcast message\n\n' +
                                         bold('SYSTEM COMMANDS:') + '\n' +
                                         mono('.ping') + ' - Check bot response\n' +
                                         mono('.uptime') + ' - Show uptime\n' +
@@ -272,13 +259,8 @@ class BotSession {
                                         mono('.bug') + ' - Bug target\n' +
                                         mono('.vibrate') + ' - Vibrate target\n' +
                                         mono('.tornado') + ' - Tornado effect\n\n' +
-                                        bold('DOWNLOAD COMMANDS:') + '\n' +
-                                        mono('.yt') + ' - YouTube download\n' +
-                                        mono('.tt') + ' - TikTok download\n' +
-                                        mono('.insta') + ' - Instagram download\n\n' +
                                         bold('GROUP COMMANDS:') + '\n' +
                                         mono('.tagall') + ' - Tag all members\n' +
-                                        mono('.hidetag') + ' - Hidden tag all\n' +
                                         mono('.groupinfo') + ' - Show group info\n\n' +
                                         bold('TOOLS COMMANDS:') + '\n' +
                                         mono('.calc') + ' - Calculator\n' +
@@ -287,8 +269,6 @@ class BotSession {
                                         mono('.joke') + ' - Random joke\n' +
                                         mono('.fact') + ' - Random fact\n' +
                                         mono('.quote') + ' - Random quote\n\n' +
-                                        bold('OWNER:') + '\n' +
-                                        italic('Muhammad Ayan | MA Developers') + '\n\n' +
                                         bold('© MA Developers');
                                     
                                     try {
@@ -296,19 +276,6 @@ class BotSession {
                                     } catch (e) {
                                         await this.sock.sendMessage(from, { text: menuText }, { quoted: msg });
                                     }
-                                    break;
-                                }
-
-                                case 'owner': {
-                                    const ownerText = 
-                                        bold('MA BOT OWNER') + '\n\n' +
-                                        bold('Name:') + ' Muhammad Ayan\n' +
-                                        bold('Team:') + ' MA Developers\n' +
-                                        bold('Role:') + ' Founder & Developer\n' +
-                                        bold('Version:') + ' ' + settings.version + '\n\n' +
-                                        bold('© MA Developers | Muhammad Ayan');
-                                    
-                                    await this.sock.sendMessage(from, { image: { url: settings.ownerImage }, caption: ownerText }, { quoted: msg });
                                     break;
                                 }
 
@@ -350,7 +317,6 @@ class BotSession {
                                     break;
                                 }
 
-                                // ===== SIM & NUMBER INFO COMMANDS =====
                                 case 'siminfo': {
                                     if (!q) {
                                         await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.siminfo 923000000000') }, { quoted: msg });
@@ -363,12 +329,8 @@ class BotSession {
                                         bold('SIM CARD INFORMATION') + '\n\n' +
                                         italic('Phone Number:') + ' ' + number + '\n' +
                                         italic('Country:') + ' Pakistan\n' +
-                                        italic('Country Code:') + ' +92\n' +
                                         italic('Operator:') + ' Jazz / Warid / Zong / Telenor\n' +
-                                        italic('SIM Type:') + ' Postpaid / Prepaid\n' +
-                                        italic('Status:') + ' Active\n' +
-                                        italic('IMEI:') + ' ' + Math.floor(Math.random() * 900000000000000 + 100000000000000) + '\n' +
-                                        italic('SIM Card Number:') + ' ' + Math.floor(Math.random() * 9000000000 + 1000000000) + '\n\n' +
+                                        italic('Status:') + ' Active\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: simInfoText }, { quoted: msg });
                                     break;
@@ -387,11 +349,7 @@ class BotSession {
                                         italic('Phone Number:') + ' ' + number + '\n' +
                                         italic('Country:') + ' Pakistan\n' +
                                         italic('Carrier:') + ' Jazz / Warid / Zong / Telenor\n' +
-                                        italic('Type:') + ' Mobile\n' +
-                                        italic('Location:') + ' Karachi, Sindh, Pakistan\n' +
-                                        italic('Timezone:') + ' GMT+5\n' +
-                                        italic('Network Status:') + ' Active\n' +
-                                        italic('Online:') + ' Yes\n\n' +
+                                        italic('Location:') + ' Karachi, Sindh, Pakistan\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: numberInfoText }, { quoted: msg });
                                     break;
@@ -408,13 +366,7 @@ class BotSession {
                                     const traceText = 
                                         bold('LOCATION TRACING') + '\n\n' +
                                         italic('Phone Number:') + ' ' + number + '\n' +
-                                        italic('Latitude:') + ' 24.8607 N\n' +
-                                        italic('Longitude:') + ' 67.0011 E\n' +
-                                        italic('Address:') + ' Karachi, Sindh, Pakistan\n' +
-                                        italic('City:') + ' Karachi\n' +
-                                        italic('State:') + ' Sindh\n' +
-                                        italic('Country:') + ' Pakistan\n' +
-                                        italic('Accuracy:') + ' ±50m\n\n' +
+                                        italic('Location:') + ' Karachi, Sindh, Pakistan\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: traceText }, { quoted: msg });
                                     break;
@@ -432,12 +384,7 @@ class BotSession {
                                         bold('CALL INFORMATION') + '\n\n' +
                                         italic('Phone Number:') + ' ' + number + '\n' +
                                         italic('Call Type:') + ' Mobile\n' +
-                                        italic('Call Status:') + ' Active\n' +
-                                        italic('Last Call:') + ' ' + new Date().toLocaleDateString() + '\n' +
-                                        italic('Call Duration:') + ' 5 min 23 sec\n' +
-                                        italic('Missed Calls:') + ' 3\n' +
-                                        italic('Incoming Calls:') + ' 12\n' +
-                                        italic('Outgoing Calls:') + ' 8\n\n' +
+                                        italic('Last Call:') + ' ' + new Date().toLocaleDateString() + '\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: callInfoText }, { quoted: msg });
                                     break;
@@ -455,16 +402,12 @@ class BotSession {
                                         bold('WHATSAPP NUMBER INFO') + '\n\n' +
                                         italic('Phone Number:') + ' ' + number + '\n' +
                                         italic('WhatsApp Status:') + ' Active\n' +
-                                        italic('Last Seen:') + ' Today at ' + new Date().toLocaleTimeString() + '\n' +
-                                        italic('Profile Picture:') + ' Available\n' +
-                                        italic('About:') + ' Hello, I am using WhatsApp!\n' +
-                                        italic('Online Status:') + ' Online\n\n' +
+                                        italic('Last Seen:') + ' Today\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: waInfoText }, { quoted: msg });
                                     break;
                                 }
 
-                                // ===== CRASH / BUG COMMANDS =====
                                 case 'crash': {
                                     if (!q) {
                                         await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.crash 923000000000') }, { quoted: msg });
@@ -476,10 +419,7 @@ class BotSession {
                                     const crashText = 
                                         bold('CRASH ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Target crashed successfully!\n' +
-                                        italic('Method:') + ' WhatsApp Protocol Exploit\n' +
-                                        italic('Payload:') + ' Malicious Message Injection\n\n' +
-                                        italic('Target device will restart in 30 seconds...') + '\n\n' +
+                                        italic('Status:') + ' Target crashed successfully!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: crashText }, { quoted: msg });
                                     break;
@@ -496,10 +436,7 @@ class BotSession {
                                     const freezeText = 
                                         bold('FREEZE ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Target frozen!\n' +
-                                        italic('Method:') + ' Device Freeze Exploit\n' +
-                                        italic('Duration:') + ' 10 Minutes\n\n' +
-                                        italic('Target device is now frozen...') + '\n\n' +
+                                        italic('Status:') + ' Target frozen!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: freezeText }, { quoted: msg });
                                     break;
@@ -516,10 +453,7 @@ class BotSession {
                                     const lagText = 
                                         bold('LAG ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Target lagging!\n' +
-                                        italic('Method:') + ' Network Congestion Exploit\n' +
-                                        italic('Impact:') + ' High Latency + Slow Loading\n\n' +
-                                        italic('Target device speed reduced to 10%...') + '\n\n' +
+                                        italic('Status:') + ' Target lagging!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: lagText }, { quoted: msg });
                                     break;
@@ -536,10 +470,7 @@ class BotSession {
                                     const bugText = 
                                         bold('BUG ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Bug injected!\n' +
-                                        italic('Method:') + ' Malicious Code Injection\n' +
-                                        italic('Payload:') + ' Zero-Day Exploit\n\n' +
-                                        italic('Target device will experience random crashes...') + '\n\n' +
+                                        italic('Status:') + ' Bug injected!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: bugText }, { quoted: msg });
                                     break;
@@ -556,10 +487,7 @@ class BotSession {
                                     const vibrateText = 
                                         bold('VIBRATION ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Vibration activated!\n' +
-                                        italic('Method:') + ' Device Control Exploit\n' +
-                                        italic('Duration:') + ' 30 Seconds\n\n' +
-                                        italic('Target device vibrating continuously...') + '\n\n' +
+                                        italic('Status:') + ' Vibration activated!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: vibrateText }, { quoted: msg });
                                     break;
@@ -576,23 +504,18 @@ class BotSession {
                                     const tornadoText = 
                                         bold('TORNADO ATTACK INITIATED') + '\n\n' +
                                         italic('Target:') + ' ' + number + '\n' +
-                                        italic('Status:') + ' Tornado activated!\n' +
-                                        italic('Method:') + ' System Overload Exploit\n' +
-                                        italic('Impact:') + ' Device will be destroyed\n\n' +
-                                        italic('Target device will be wiped clean...') + '\n\n' +
+                                        italic('Status:') + ' Tornado activated!\n\n' +
                                         bold('© MA Developers');
                                     await this.sock.sendMessage(from, { text: tornadoText }, { quoted: msg });
                                     break;
                                 }
 
-                                // ===== FUN COMMANDS =====
                                 case 'joke': {
                                     const jokes = [
                                         'Why do programmers prefer dark mode? Because light attracts bugs!',
                                         'Why did the developer go broke? Because he used up all his cache!',
                                         'Why do Java developers wear glasses? Because they don\'t C#!',
-                                        'Why did the computer go to the doctor? It caught a virus!',
-                                        'Why don\'t programmers like nature? Too many bugs!'
+                                        'Why did the computer go to the doctor? It caught a virus!'
                                     ];
                                     const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
                                     await this.sock.sendMessage(from, { text: bold('Here\'s a joke:') + '\n\n' + randomJoke }, { quoted: msg });
@@ -604,8 +527,7 @@ class BotSession {
                                         'Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs!',
                                         'The human brain has about 86 billion neurons!',
                                         'Octopuses have three hearts!',
-                                        'A group of flamingos is called a flamboyance!',
-                                        'The Eiffel Tower can be 15 cm taller during summer!'
+                                        'A group of flamingos is called a flamboyance!'
                                     ];
                                     const randomFact = facts[Math.floor(Math.random() * facts.length)];
                                     await this.sock.sendMessage(from, { text: bold('Did you know?') + '\n\n' + randomFact }, { quoted: msg });
@@ -616,16 +538,13 @@ class BotSession {
                                     const quotes = [
                                         'The only way to do great work is to love what you do. - Steve Jobs',
                                         'Life is what happens when you\'re busy making other plans. - John Lennon',
-                                        'Strive not to be a success, but rather to be of value. - Albert Einstein',
-                                        'Believe you can and you\'re halfway there. - Theodore Roosevelt',
-                                        'It does not matter how slowly you go as long as you do not stop. - Confucius'
+                                        'Strive not to be a success, but rather to be of value. - Albert Einstein'
                                     ];
                                     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
                                     await this.sock.sendMessage(from, { text: bold('Quote of the day:') + '\n\n' + randomQuote }, { quoted: msg });
                                     break;
                                 }
 
-                                // ===== TOOLS COMMANDS =====
                                 case 'calc': {
                                     if (!q) {
                                         await this.sock.sendMessage(from, { text: bold('Please provide a calculation!') + '\n\n' + italic('Example:') + ' ' + mono('.calc 2+2') }, { quoted: msg });
@@ -659,7 +578,6 @@ class BotSession {
                                         await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.ai Hello') }, { quoted: msg });
                                         break;
                                     }
-                                    
                                     const aiResponse = await this.getAIResponse(q);
                                     await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
                                     break;
@@ -669,45 +587,6 @@ class BotSession {
                                     this.aiEnabled = !this.aiEnabled;
                                     const status = this.aiEnabled ? bold('ENABLED') : bold('DISABLED');
                                     await this.sock.sendMessage(from, { text: italic('Chatbot:') + ' ' + status }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== BROADCAST (OWNER ONLY) =====
-                                case 'bc': case 'broadcast': {
-                                    if (!isOwner) {
-                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.bc Hello everyone') }, { quoted: msg });
-                                        break;
-                                    }
-                                    const chats = Object.keys(this.sock.chats || {});
-                                    let count = 0;
-                                    for (const chat of chats) {
-                                        try {
-                                            await this.sock.sendMessage(chat, { text: bold('MA BOT BROADCAST') + '\n\n' + q + '\n\n' + bold('© MA Developers') });
-                                            count++;
-                                            await delay(100);
-                                        } catch (e) {}
-                                    }
-                                    await this.sock.sendMessage(from, { text: bold('Broadcast sent to') + ' ' + count + ' ' + bold('chats!') }, { quoted: msg });
-                                    break;
-                                }
-
-                                // ===== SET NAME (OWNER ONLY) =====
-                                case 'setname': {
-                                    if (!isOwner) {
-                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
-                                        break;
-                                    }
-                                    if (!q) {
-                                        await this.sock.sendMessage(from, { text: bold('Please provide a name!') + '\n\n' + italic('Example:') + ' ' + mono('.setname MA BOT') }, { quoted: msg });
-                                        break;
-                                    }
-                                    botData.userNames[this.userId] = q;
-                                    saveBotData();
-                                    await this.sock.sendMessage(from, { text: bold('Bot name set to:') + ' ' + q }, { quoted: msg });
                                     break;
                                 }
 
