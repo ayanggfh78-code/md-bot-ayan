@@ -1,1124 +1,1129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MA BOT</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        :root {
-            --primary: #00ff88;
-            --primary-dark: #00cc6a;
-            --secondary: #6c63ff;
-            --bg: #0a0a0a;
-            --bg-card: #111111;
-            --bg-card-hover: #1a1a1a;
-            --text: #ffffff;
-            --text-dim: #888888;
-            --border: #222222;
-            --danger: #ff4757;
-            --success: #2ed573;
-            --warning: #ffa502;
-            --info: #1e90ff;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* ===== BACKGROUND EFFECTS ===== */
-        .bg-grid {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: -2;
-        }
-
-        .bg-glow {
-            position: fixed;
-            top: -50%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
-            border-radius: 50%;
-            z-index: -1;
-            animation: glow 8s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            0% { opacity: 0.5; transform: translateX(-50%) scale(1); }
-            100% { opacity: 1; transform: translateX(-50%) scale(1.2); }
-        }
-
-        /* ===== NAVBAR ===== */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 70px;
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            z-index: 1000;
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .nav-brand img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--primary);
-        }
-
-        .nav-brand .brand-info .name {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--primary);
-            letter-spacing: 0.5px;
-        }
-
-        .nav-brand .brand-info .subtitle {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            letter-spacing: 1px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .nav-links a {
-            color: var(--text-dim);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s;
-            position: relative;
-            padding: 5px 0;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--primary);
-            transition: width 0.3s;
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        .nav-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: var(--text);
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        /* ===== HERO SECTION ===== */
-        .hero {
-            padding: 150px 20px 80px;
-            text-align: center;
-            position: relative;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            color: var(--primary);
-            font-weight: 500;
-            margin-bottom: 20px;
-            animation: fadeInDown 1s ease;
-        }
-
-        .hero-badge .pulse {
-            width: 8px;
-            height: 8px;
-            background: var(--primary);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.8); }
-        }
-
-        .hero h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary) 0%, #00ff88 50%, var(--secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 15px;
-            animation: fadeInUp 1s ease;
-        }
-
-        .hero p {
-            color: var(--text-dim);
-            font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.8;
-            animation: fadeInUp 1s ease 0.2s both;
-        }
-
-        .hero p strong {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 50px;
-            flex-wrap: wrap;
-            animation: fadeInUp 1s ease 0.4s both;
-        }
-
-        .stat-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 20px 30px;
-            min-width: 160px;
-            text-align: center;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), transparent);
-        }
-
-        .stat-box:hover {
-            border-color: var(--primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
-        }
-
-        .stat-box i {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-bottom: 10px;
-        }
-
-        .stat-box .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--text);
-        }
-
-        .stat-box .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ===== MAIN CONTAINER ===== */
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* ===== CARDS ===== */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 25px;
-            position: relative;
-            transition: all 0.3s;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
-        .card:hover {
-            border-color: rgba(0, 255, 136, 0.3);
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 25px;
-            color: var(--text);
-        }
-
-        .card-title i {
-            color: var(--primary);
-            font-size: 1.3rem;
-        }
-
-        .card-title .badge {
-            background: var(--primary);
-            color: #000;
-            font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-weight: 700;
-        }
-
-        /* ===== INPUT GROUPS ===== */
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-dim);
-            font-size: 1rem;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 15px 15px 15px 45px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-size: 0.95rem;
-            transition: all 0.3s;
-            outline: none;
-        }
-
-        .input-group input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
-        }
-
-        .input-group input::placeholder {
-            color: var(--text-dim);
-        }
-
-        /* ===== BUTTONS ===== */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 14px 24px;
-            border: none;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-        }
-
-        .btn-outline:hover {
-            background: rgba(0, 255, 136, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* ===== STATUS BOX ===== */
-        .status-box {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            display: none;
-            border-left: 3px solid;
-        }
-
-        .status-box.show {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .status-success {
-            background: rgba(46, 213, 115, 0.1);
-            border-left-color: var(--success);
-            color: var(--success);
-        }
-
-        .status-error {
-            background: rgba(255, 71, 87, 0.1);
-            border-left-color: var(--danger);
-            color: var(--danger);
-        }
-
-        .status-warning {
-            background: rgba(255, 165, 2, 0.1);
-            border-left-color: var(--warning);
-            color: var(--warning);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* ===== CODE DISPLAY ===== */
-        .code-display {
-            background: var(--bg);
-            border: 1px dashed var(--primary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: 3px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: none;
-            animation: fadeInUp 0.5s ease;
-        }
-
-        .code-display:hover {
-            background: rgba(0, 255, 136, 0.1);
-            border-style: solid;
-        }
-
-        .code-display.show {
-            display: block;
-        }
-
-        .copy-hint {
-            text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 8px;
-            display: none;
-        }
-
-        .copy-hint.show {
-            display: block;
-        }
-
-        /* ===== FEATURES GRID ===== */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 20px;
-        }
-
-        .feature-item {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 3px;
-            background: var(--primary);
-            transition: width 0.3s;
-        }
-
-        .feature-item:hover::before {
-            width: 100%;
-        }
-
-        .feature-item:hover {
-            border-color: rgba(0, 255, 136, 0.3);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .feature-item i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 15px;
-        }
-
-        .feature-item h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .feature-item p {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            line-height: 1.6;
-        }
-
-        /* ===== COMMAND GRID ===== */
-        .commands-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-        }
-
-        .command-item {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .command-item:hover {
-            border-color: var(--primary);
-            transform: translateX(5px);
-        }
-
-        .command-item .cmd-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 255, 136, 0.1);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            font-size: 1rem;
-        }
-
-        .command-item .cmd-info {
-            flex: 1;
-        }
-
-        .command-item .cmd-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .command-item .cmd-desc {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 2px;
-        }
-
-        /* ===== LOADING SPINNER ===== */
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            border-top-color: #000;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* ===== FOOTER ===== */
-        footer {
-            text-align: center;
-            padding: 50px 20px;
-            border-top: 1px solid var(--border);
-            margin-top: 50px;
-            background: rgba(10, 10, 10, 0.5);
-        }
-
-        footer .footer-logo {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin-bottom: 15px;
-            border: 2px solid var(--primary);
-        }
-
-        footer p {
-            color: var(--text-dim);
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-        }
-
-        footer .footer-name {
-            color: var(--primary);
-            font-weight: 700;
-            font-size: 1rem;
-        }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            nav {
-                padding: 0 15px;
-            }
-
-            .nav-links {
-                position: fixed;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: rgba(10, 10, 10, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                padding: 20px;
-                gap: 15px;
-                border-bottom: 1px solid var(--border);
-                transform: translateY(-150%);
-                transition: transform 0.3s;
-                z-index: 999;
-            }
-
-            .nav-links.active {
-                transform: translateY(0);
-            }
-
-            .nav-toggle {
-                display: block;
-            }
-
-            .nav-links a {
-                padding: 10px;
-                width: 100%;
-                text-align: center;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            }
-
-            .hero {
-                padding: 120px 15px 50px;
-            }
-
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .hero p {
-                font-size: 0.95rem;
-            }
-
-            .card {
-                padding: 20px;
-            }
-
-            .commands-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .code-display {
-                font-size: 1.3rem;
-            }
-        }
-
-        /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
-
-        /* ===== TOAST ===== */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--primary);
-            color: #000;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 2000;
-            box-shadow: 0 10px 40px rgba(0, 255, 136, 0.3);
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        /* ===== SECTION TITLES ===== */
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .section-title .icon {
-            width: 45px;
-            height: 45px;
-            background: rgba(0, 255, 136, 0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            font-size: 1.2rem;
-        }
-
-        .section-title h2 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .section-title p {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-top: 2px;
-        }
-
-        /* ===== SEPARATOR ===== */
-        .separator {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin: 30px 0;
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .separator::before,
-        .separator::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Background Effects -->
-    <div class="bg-grid"></div>
-    <div class="bg-glow"></div>
-
-    <!-- Navbar -->
-    <nav>
-        <div class="nav-brand">
-            <img src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png" alt="MA BOT">
-            <div class="brand-info">
-                <div class="name">MA BOT</div>
-                <div class="subtitle">WHATSAPP BOT - 24/7</div>
-            </div>
-        </div>
-        <div class="nav-links" id="navLinks">
-            <a href="#connect"><i class="fas fa-plug"></i> Connect</a>
-            <a href="#features"><i class="fas fa-star"></i> Features</a>
-            <a href="#commands"><i class="fas fa-terminal"></i> Commands</a>
-        </div>
-        <button class="nav-toggle" id="navToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-    </nav>
-
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="hero-badge">
-            <span class="pulse"></span>
-            MA BOT IS ONLINE
-        </div>
-        <h1>MA BOT</h1>
-        <p>
-            Welcome to <strong>MA BOT</strong> - The most powerful WhatsApp automation bot.
-            Developed by <strong>MA Developers</strong> | Founder: <strong>Muhammad Ayan</strong>
-        </p>
-
-        <!-- Stats -->
-        <div class="hero-stats">
-            <div class="stat-box">
-                <i class="fas fa-plug"></i>
-                <div class="stat-value" id="totalSessions">0</div>
-                <div class="stat-label">Sessions</div>
-            </div>
-            <div class="stat-box">
-                <i class="fas fa-signal"></i>
-                <div class="stat-value" id="activeUsers">0</div>
-                <div class="stat-label">Active Users</div>
-            </div>
-            <div class="stat-box">
-                <i class="fas fa-bolt"></i>
-                <div class="stat-value">24/7</div>
-                <div class="stat-label">Uptime</div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="container">
-
-        <!-- Connect Section -->
-        <section id="connect">
-            <div class="section-title">
-                <div class="icon"><i class="fas fa-plug"></i></div>
-                <div>
-                    <h2>Connect Your WhatsApp</h2>
-                    <p>Enter your number to get pairing code</p>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-link"></i>
-                    Quick Connect
-                    <span class="badge">NEW</span>
-                </div>
-
-                <div class="input-group">
-                    <i class="fas fa-phone"></i>
-                    <input type="tel" id="phone" placeholder="Enter WhatsApp number (e.g. 923000000000)">
-                </div>
-
-                <button class="btn btn-primary" id="requestPairing">
-                    <i class="fas fa-key"></i>
-                    Request Pairing Code
-                </button>
-
-                <div class="status-box" id="status"></div>
-
-                <div class="code-display" id="codeDisplay" onclick="copyCode()">
-                    <span id="pairingCode">0000 0000</span>
-                </div>
-                <div class="copy-hint" id="copyHint">Tap to copy code</div>
-            </div>
-        </section>
-
-        <div class="separator">MA BOT FEATURES</div>
-
-        <!-- Features Section -->
-        <section id="features">
-            <div class="section-title">
-                <div class="icon"><i class="fas fa-star"></i></div>
-                <div>
-                    <h2>Why Choose MA BOT?</h2>
-                    <p>Powerful features for your WhatsApp</p>
-                </div>
-            </div>
-
-            <div class="features-grid">
-                <div class="feature-item">
-                    <i class="fas fa-bolt"></i>
-                    <h3>Lightning Fast</h3>
-                    <p>Instant response and fast processing</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-robot"></i>
-                    <h3>AI Powered</h3>
-                    <p>Smart AI responses and automation</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-layer-group"></i>
-                    <h3>50+ Commands</h3>
-                    <p>Comprehensive command library</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>Secure & Safe</h3>
-                    <p>Your data stays protected</p>
-                </div>
-            </div>
-        </section>
-
-        <div class="separator">MA BOT COMMANDS</div>
-
-        <!-- Commands Section -->
-        <section id="commands">
-            <div class="section-title">
-                <div class="icon"><i class="fas fa-terminal"></i></div>
-                <div>
-                    <h2>Popular Commands</h2>
-                    <p>Try these commands in WhatsApp</p>
-                </div>
-            </div>
-
-            <div class="commands-grid">
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.ping</div>
-                        <div class="cmd-desc">Check bot response</div>
-                    </div>
-                </div>
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-robot"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.ai</div>
-                        <div class="cmd-desc">Ask AI anything</div>
-                    </div>
-                </div>
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-sticker"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.sticker</div>
-                        <div class="cmd-desc">Create sticker</div>
-                    </div>
-                </div>
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-users"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.tagall</div>
-                        <div class="cmd-desc">Tag all members</div>
-                    </div>
-                </div>
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-joke"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.joke</div>
-                        <div class="cmd-desc">Random joke</div>
-                    </div>
-                </div>
-                <div class="command-item">
-                    <div class="cmd-icon"><i class="fas fa-user"></i></div>
-                    <div class="cmd-info">
-                        <div class="cmd-name">.owner</div>
-                        <div class="cmd-desc">Owner info</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer>
-        <img src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png" alt="MA BOT" class="footer-logo">
-        <p class="footer-name">MA BOT</p>
-        <p>Developed by MA Developers</p>
-        <p>Founder & Developer: <strong>Muhammad Ayan</strong></p>
-        <p style="margin-top: 15px; font-size: 0.75rem;">© 2026 MA Developers. All rights reserved.</p>
-    </footer>
-
-    <!-- Toast -->
-    <div class="toast" id="toast">CODE COPIED!</div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // =================== NAVIGATION ===================
-        const navToggle = document.getElementById('navToggle');
-        const navLinks = document.getElementById('navLinks');
-
-        navToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
-
-        // Close menu on click
-        navLinks.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                navLinks.classList.remove('active');
-            });
-        });
-
-        // =================== TOAST ===================
-        const toast = document.getElementById('toast');
-        
-        function showToast(message) {
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-
-        // =================== SOCKET ===================
-        const socket = io();
-        const phoneInput = document.getElementById('phone');
-        const requestBtn = document.getElementById('requestPairing');
-        const statusEl = document.getElementById('status');
-        const codeDisplay = document.getElementById('codeDisplay');
-        const copyHint = document.getElementById('copyHint');
-        const pairingCode = document.getElementById('pairingCode');
-
-        function setStatus(message, type) {
-            statusEl.textContent = message;
-            statusEl.className = 'status-box show status-' + type;
-        }
-
-        // =================== PAIRING ===================
-        requestBtn.addEventListener('click', () => {
-            const number = phoneInput.value.replace(/\D/g, '');
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const fs = require('fs-extra');
+const path = require('path');
+const axios = require('axios');
+const ytdl = require('@distube/ytdl-core');
+const yts = require('yt-search');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay, downloadContentFromMessage, downloadMediaMessage } = require('@whiskeysockets/baileys');
+const P = require('pino');
+
+// =================== SETTINGS ===================
+const settings = require('./settings');
+
+// =================== EXPRESS SETUP ===================
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: { origin: "*" },
+    transports: ['websocket', 'polling']
+});
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname)));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// =================== TELEGRAM BOT ===================
+const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+let tgBot = null;
+
+if (tgToken) {
+    try {
+        tgBot = new TelegramBot(tgToken, { polling: true });
+        console.log('Telegram bot initialized');
+    } catch (error) {
+        console.log('Telegram bot failed:', error.message);
+        tgBot = null;
+    }
+}
+
+if (tgBot) {
+    tgBot.onText(/\/start/, (msg) => {
+        const chatId = msg.chat.id;
+        tgBot.sendMessage(chatId, 
+            `*MA BOT* 🤖\n\n` +
+            `Welcome to MA BOT!\n\n` +
+            `*To Connect WhatsApp:*\n` +
+            `Send your WhatsApp number with country code.\n\n` +
+            `*Example:*\n` +
+            `\`923000000000\`\n\n` +
+            `*Developed by:* MA Developers\n` +
+            `*Founder:* Muhammad Ayan`,
+            { parse_mode: 'Markdown' }
+        );
+    });
+
+    tgBot.on('message', async (msg) => {
+        const chatId = msg.chat.id;
+        const text = msg.text;
+
+        if (!text || text.startsWith('/')) return;
+
+        if (/^\d+$/.test(text)) {
+            const userId = `tg_${chatId}`;
             
-            if (!number || number.length < 10) {
-                setStatus('Please enter a valid WhatsApp number with country code!', 'error');
-                phoneInput.focus();
-                return;
+            if (!sessions[userId]) {
+                sessions[userId] = new BotSession(userId);
             }
 
-            requestBtn.disabled = true;
-            requestBtn.innerHTML = '<span class="spinner"></span> Requesting...';
-            setStatus('Sending pairing request...', 'warning');
+            sessions[userId].tgChatId = chatId;
 
-            const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            socket.emit('set-user', userId);
-            socket.emit('pair-request', { userId, number });
-        });
+            tgBot.sendMessage(chatId, 
+                `*MA BOT* 🤖\n\n` +
+                `Requesting pairing code for:\n` +
+                `\`${text}\`\n\n` +
+                `Please wait...`,
+                { parse_mode: 'Markdown' }
+            );
 
-        // =================== SOCKET EVENTS ===================
-        socket.on('pairing-code', (code) => {
-            requestBtn.disabled = false;
-            requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
-            setStatus('Pairing code generated!', 'success');
-            
-            codeDisplay.classList.add('show');
-            copyHint.classList.add('show');
-            pairingCode.textContent = code;
-            
-            showToast('PAIRING CODE RECEIVED!');
-        });
+            await sessions[userId].initialize(text);
+        }
+    });
 
-        socket.on('pair-error', (msg) => {
-            requestBtn.disabled = false;
-            requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
-            setStatus(msg || 'Failed to generate pairing code. Try again.', 'error');
-        });
+    tgBot.on('polling_error', (error) => {
+        console.log('Telegram polling error:', error.message);
+    });
+}
 
-        socket.on('connection-status', (status) => {
-            if (status && status.connected) {
-                codeDisplay.classList.add('show');
-                pairingCode.textContent = 'LINKED!';
-                pairingCode.style.color = 'var(--success)';
-                setStatus('Device linked successfully!', 'success');
-                showToast('CONNECTED SUCCESSFULLY!');
-                setTimeout(() => location.reload(), 3000);
-            }
-        });
+// =================== DATA STORAGE ===================
+const AUTH_DIR = './auth_info';
+const DATA_FILE = './data/bot_data.json';
+fs.ensureDirSync(AUTH_DIR);
+fs.ensureDirSync('./data');
 
-        socket.on('stats', (data) => {
-            if (data) {
-                if (data.totalSessions) document.getElementById('totalSessions').textContent = data.totalSessions;
-                if (data.activeUsers) document.getElementById('activeUsers').textContent = data.activeUsers;
-            }
-        });
+let botData = { 
+    antilinkGroups: {}, 
+    totalBots: 0, 
+    registeredBots: [], 
+    statusSettings: {}, 
+    antiDelete: {}, 
+    userNames: {}, 
+    antiCall: {}, 
+    broadcastHistory: [] 
+};
 
-        // =================== COPY CODE ===================
-        function copyCode() {
-            const code = pairingCode.textContent;
-            if (code === '0000 0000') return;
-            
-            navigator.clipboard.writeText(code.replace(/\s/g, '')).then(() => {
-                showToast('CODE COPIED TO CLIPBOARD!');
+if (fs.existsSync(DATA_FILE)) {
+    try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
+}
+
+function saveBotData() {
+    fs.writeJsonSync(DATA_FILE, botData);
+}
+
+const sessions = {}; 
+const userSockets = {}; 
+const messageLogs = {}; 
+
+// =================== FORMATTING HELPERS ===================
+const bold = (text) => `*${text}*`;
+const italic = (text) => `_${text}_`;
+const mono = (text) => `\`${text}\``;
+
+// =================== WAITING MESSAGE FUNCTION ===================
+async function sendWaiting(sock, from, msg, action = 'processing') {
+    const messages = {
+        processing: '⏳ _Processing your request... Please wait..._',
+        searching: '🔍 _Searching for the information... Please wait..._',
+        downloading: '📥 _Downloading... This may take some time..._',
+        hacking: '💻 _Executing hack... This may take some time..._',
+        crashing: '💥 _Crashing target... This may take some time..._',
+        tracing: '📍 _Tracing location... This may take some time..._',
+        analyzing: '📊 _Analyzing data... This may take some time..._',
+        connecting: '🔗 _Connecting to server... Please wait..._'
+    };
+    
+    const waitMsg = messages[action] || messages.processing;
+    const sent = await sock.sendMessage(from, { text: waitMsg }, { quoted: msg });
+    return sent;
+}
+
+// =================== BOT SESSION CLASS ===================
+class BotSession {
+    constructor(userId) {
+        this.userId = userId;
+        this.sock = null;
+        this.isConnected = false;
+        this.aiEnabled = false;
+        this.autoReact = false;
+        this.isPublic = true;
+        this.authPath = path.join(AUTH_DIR, userId);
+        this.processedMessages = new Set();
+        this.phoneNumber = null;
+        this.ghostMode = false;
+        this.tgChatId = null;
+    }
+
+    sendLog(message, type = 'info') {
+        const logEntry = { timestamp: new Date().toLocaleTimeString(), message, type };
+        const socketId = userSockets[this.userId];
+        if (socketId) io.to(socketId).emit('console', logEntry);
+        console.log(`[${this.userId}] ${message}`);
+    }
+
+    sendConnectionStatus() {
+        const socketId = userSockets[this.userId];
+        if (socketId) {
+            io.to(socketId).emit('connection-status', {
+                connected: this.isConnected,
+                user: this.userId
             });
         }
-    </script>
-</body>
-</html>
+        io.emit('total-active', Object.values(sessions).filter(s => s.isConnected).length);
+    }
+
+    async getAIResponse(userMessage) {
+        try {
+            const apiUrl = `https://api.siputzx.my.id/api/ai/chatgpt?text=${encodeURIComponent(userMessage)}`;
+            const response = await axios.get(apiUrl);
+            if (response.data && response.data.data) {
+                return response.data.data;
+            }
+            return "I'm here to help! What would you like to know?";
+        } catch (error) {
+            return "Sorry, I'm having trouble connecting to AI services right now.";
+        }
+    }
+
+    async initialize(pairingNumber = null) {
+        try {
+            const { version } = await fetchLatestBaileysVersion();
+            const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
+
+            this.sock = makeWASocket({
+                version,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'fatal' })),
+                },
+                printQRInTerminal: false,
+                logger: P({ level: 'fatal' }),
+                browser: Browsers.ubuntu('Chrome'),
+                syncFullHistory: false,
+                markOnlineOnConnect: true,
+                connectTimeoutMs: 60000,
+                defaultQueryTimeoutMs: 60000,
+            });
+
+            if (pairingNumber && !state.creds.registered) {
+                if (!this.sock.authState.creds.registered) {
+                    await delay(3000);
+                    try {
+                        let code = await this.sock.requestPairingCode(pairingNumber);
+                        code = code?.match(/.{1,4}/g)?.join("-") || code;
+                        this.sendLog(`Pairing Code: ${code}`, 'success');
+
+                        if (this.tgChatId && tgBot) {
+                            await tgBot.sendMessage(this.tgChatId, `*MA BOT - PAIRING CODE:*\n${mono(code)}\n\n_Enter this in WhatsApp Linked Devices_`, { parse_mode: 'Markdown' });
+                        }
+
+                        const socketId = userSockets[this.userId];
+                        if (socketId) io.to(socketId).emit('pairing-code', code);
+                    } catch (err) {
+                        this.sendLog(`Pairing error: ${err.message}`, 'error');
+                    }
+                }
+            }
+
+            this.sock.ev.on('creds.update', saveCreds);
+
+            this.sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
+                
+                if (qr) {
+                    const socketId = userSockets[this.userId];
+                    if (socketId) io.to(socketId).emit('qr', qr);
+                }
+
+                if (connection === 'close') {
+                    const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+                    this.isConnected = false;
+                    this.sendLog(`Connection closed. Reconnecting: ${shouldReconnect}`, 'warning');
+                    this.sendConnectionStatus();
+                    
+                    const statusCode = (lastDisconnect.error)?.output?.statusCode;
+                    
+                    if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+                        this.sendLog('Session expired or logged out.', 'error');
+                        delete sessions[this.userId];
+                        this.sendConnectionStatus();
+                    } else {
+                        setTimeout(() => this.initialize(), 5000);
+                    }
+                } else if (connection === 'open') {
+                    this.isConnected = true;
+                    this.sendLog('Connected successfully!', 'success');
+                    this.sendConnectionStatus();
+
+                    const botNumber = jidNormalizedUser(this.sock.user.id);
+                    const botNumberClean = botNumber.split('@')[0];
+                    this.phoneNumber = botNumberClean;
+
+                    const welcomeText = 
+                        bold('MA BOT') + '\n\n' +
+                        bold('CONNECTED SUCCESSFULLY') + '\n\n' +
+                        bold('Bot Information:') + '\n' +
+                        italic('Bot Name:') + ' MA BOT\n' +
+                        italic('Developer:') + ' MA Developers\n' +
+                        italic('Founder:') + ' Muhammad Ayan\n' +
+                        italic('Version:') + ' ' + settings.version + '\n' +
+                        italic('Status:') + ' 24/7 Active\n\n' +
+                        'Type ' + mono('.menu') + ' to explore all features.\n\n' +
+                        bold('© MA Developers | Muhammad Ayan');
+
+                    await this.sock.sendMessage(botNumber, { 
+                        image: { url: settings.startimage },
+                        caption: welcomeText 
+                    });
+
+                    if (this.tgChatId && tgBot) {
+                        await tgBot.sendMessage(this.tgChatId, `*MA BOT CONNECTION SUCCESSFUL!*\n\nYour WhatsApp has been linked.`, { parse_mode: 'Markdown' });
+                    }
+                }
+            });
+
+            this.sock.ev.on('messages.upsert', async (m) => {
+                if (m.type !== 'notify') return;
+
+                for (const msg of m.messages) {
+                    try {
+                        const from = msg.key.remoteJid;
+                        const isMe = msg.key.fromMe;
+                        const isGroup = from.endsWith('@g.us');
+                        const isStatus = from === 'status@broadcast';
+
+                        const messageContent = msg.message?.ephemeralMessage?.message || msg.message?.viewOnceMessage?.message || msg.message?.viewOnceMessageV2?.message || msg.message;
+                        if (!messageContent) continue;
+
+                        const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
+
+                        if (isStatus) continue;
+
+                        const msgId = msg.key.id;
+                        if (this.processedMessages.has(msgId)) continue;
+                        this.processedMessages.add(msgId);
+                        if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
+
+                        // =================== COMMAND PROCESSING ===================
+                        if (text.toLowerCase().startsWith('.')) {
+                            const cmd = text.toLowerCase();
+                            const args = text.split(' ').slice(1);
+                            const q = args.join(' ');
+                            const commandName = cmd.slice(1).split(' ')[0];
+
+                            const botNumber = jidNormalizedUser(this.sock.user.id);
+                            const botNumberClean = botNumber.split('@')[0];
+                            const sender = msg.key.participant || from;
+                            const senderClean = sender.split('@')[0];
+
+                            const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
+                            const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
+
+                            let isAdmin = isOwner;
+                            if (!isAdmin && isGroup) {
+                                try {
+                                    const groupMetadata = await this.sock.groupMetadata(from);
+                                    const participant = groupMetadata.participants.find(p => p.id === sender);
+                                    isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+                                } catch (e) {}
+                            }
+
+                            switch (commandName) {
+                                // ===== BASIC COMMANDS =====
+                                case 'menu': {
+                                    const menuText = 
+                                        bold('MA BOT MENU') + '\n\n' +
+                                        bold('OWNER COMMANDS:') + '\n' +
+                                        mono('.owner') + ' - Show owner info\n' +
+                                        mono('.bc') + ' - Broadcast message\n\n' +
+                                        bold('SYSTEM COMMANDS:') + '\n' +
+                                        mono('.ping') + ' - Check bot response\n' +
+                                        mono('.uptime') + ' - Show uptime\n' +
+                                        mono('.stats') + ' - Show bot stats\n\n' +
+                                        bold('AI COMMANDS:') + '\n' +
+                                        mono('.ai') + ' - Ask AI anything\n' +
+                                        mono('.chatbot') + ' - Toggle chatbot\n\n' +
+                                        bold('SIM & NUMBER INFO:') + '\n' +
+                                        mono('.siminfo') + ' - SIM card info\n' +
+                                        mono('.numberinfo') + ' - Number details\n' +
+                                        mono('.trace') + ' - Trace number\n' +
+                                        mono('.callinfo') + ' - Call details\n' +
+                                        mono('.whatsappinfo') + ' - WhatsApp info\n\n' +
+                                        bold('CRASH / BUG COMMANDS:') + '\n' +
+                                        mono('.crash') + ' - Crash target\n' +
+                                        mono('.freeze') + ' - Freeze target\n' +
+                                        mono('.lag') + ' - Lag target\n' +
+                                        mono('.bug') + ' - Bug target\n' +
+                                        mono('.vibrate') + ' - Vibrate target\n' +
+                                        mono('.tornado') + ' - Tornado effect\n\n' +
+                                        bold('DOWNLOAD COMMANDS:') + '\n' +
+                                        mono('.yt') + ' - YouTube download\n' +
+                                        mono('.tt') + ' - TikTok download\n' +
+                                        mono('.insta') + ' - Instagram download\n\n' +
+                                        bold('GROUP COMMANDS:') + '\n' +
+                                        mono('.tagall') + ' - Tag all members\n' +
+                                        mono('.hidetag') + ' - Hidden tag all\n' +
+                                        mono('.groupinfo') + ' - Show group info\n\n' +
+                                        bold('TOOLS COMMANDS:') + '\n' +
+                                        mono('.calc') + ' - Calculator\n' +
+                                        mono('.shorturl') + ' - Shorten URL\n\n' +
+                                        bold('FUN COMMANDS:') + '\n' +
+                                        mono('.joke') + ' - Random joke\n' +
+                                        mono('.fact') + ' - Random fact\n' +
+                                        mono('.quote') + ' - Random quote\n\n' +
+                                        bold('OWNER:') + '\n' +
+                                        italic('Muhammad Ayan | MA Developers') + '\n\n' +
+                                        bold('© MA Developers');
+                                    
+                                    try {
+                                        await this.sock.sendMessage(from, { image: { url: settings.startimage }, caption: menuText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: menuText }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'owner': {
+                                    const ownerText = 
+                                        bold('MA BOT OWNER') + '\n\n' +
+                                        bold('Name:') + ' Muhammad Ayan\n' +
+                                        bold('Team:') + ' MA Developers\n' +
+                                        bold('Role:') + ' Founder & Developer\n' +
+                                        bold('Version:') + ' ' + settings.version + '\n\n' +
+                                        bold('© MA Developers | Muhammad Ayan');
+                                    
+                                    await this.sock.sendMessage(from, { image: { url: settings.ownerImage }, caption: ownerText }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'ping': {
+                                    const start = Date.now();
+                                    await this.sock.sendMessage(from, { text: bold('Pong!') + '\n\n' + italic('Response time:') + ' ' + (Date.now() - start) + 'ms' }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'uptime': {
+                                    const uptime = process.uptime();
+                                    const days = Math.floor(uptime / 86400);
+                                    const hours = Math.floor((uptime % 86400) / 3600);
+                                    const minutes = Math.floor((uptime % 3600) / 60);
+                                    const seconds = Math.floor(uptime % 60);
+                                    
+                                    const text = 
+                                        bold('MA BOT UPTIME') + '\n\n' +
+                                        italic('Days:') + ' ' + days + '\n' +
+                                        italic('Hours:') + ' ' + hours + '\n' +
+                                        italic('Minutes:') + ' ' + minutes + '\n' +
+                                        italic('Seconds:') + ' ' + seconds + '\n\n' +
+                                        bold('© MA Developers');
+                                    
+                                    await this.sock.sendMessage(from, { text }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'stats': {
+                                    const activeSessions = Object.values(sessions).filter(s => s.isConnected).length;
+                                    const text = 
+                                        bold('MA BOT STATS') + '\n\n' +
+                                        italic('Total Sessions:') + ' ' + Object.keys(sessions).length + '\n' +
+                                        italic('Active Users:') + ' ' + activeSessions + '\n' +
+                                        italic('Version:') + ' ' + settings.version + '\n\n' +
+                                        bold('© MA Developers');
+                                    
+                                    await this.sock.sendMessage(from, { text }, { quoted: msg });
+                                    break;
+                                }
+
+                                // ===== SIM & NUMBER INFO COMMANDS =====
+                                case 'siminfo': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.siminfo 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'analyzing');
+                                    
+                                    try {
+                                        await delay(2000);
+                                        const number = q.replace(/\D/g, '');
+                                        const simInfoText = 
+                                            bold('SIM CARD INFORMATION') + '\n\n' +
+                                            italic('Phone Number:') + ' ' + number + '\n' +
+                                            italic('Country:') + ' Pakistan 🇵🇰\n' +
+                                            italic('Country Code:') + ' +92\n' +
+                                            italic('Operator:') + ' Jazz / Warid / Zong / Telenor\n' +
+                                            italic('SIM Type:') + ' Postpaid / Prepaid\n' +
+                                            italic('Status:') + ' Active\n' +
+                                            italic('IMEI:') + ' ' + Math.floor(Math.random() * 900000000000000 + 100000000000000) + '\n' +
+                                            italic('SIM Card Number:') + ' ' + Math.floor(Math.random() * 9000000000 + 1000000000) + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: simInfoText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch SIM info!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'numberinfo': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.numberinfo 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'searching');
+                                    
+                                    try {
+                                        await delay(2000);
+                                        const number = q.replace(/\D/g, '');
+                                        const numberInfoText = 
+                                            bold('NUMBER INFORMATION') + '\n\n' +
+                                            italic('Phone Number:') + ' ' + number + '\n' +
+                                            italic('Country:') + ' Pakistan 🇵🇰\n' +
+                                            italic('Carrier:') + ' Jazz / Warid / Zong / Telenor\n' +
+                                            italic('Type:') + ' Mobile\n' +
+                                            italic('Location:') + ' Karachi, Sindh, Pakistan\n' +
+                                            italic('Timezone:') + ' GMT+5\n' +
+                                            italic('Network Status:') + ' Active\n' +
+                                            italic('Online:') + ' Yes\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: numberInfoText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch number info!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'trace': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.trace 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'tracing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const traceText = 
+                                            bold('LOCATION TRACING') + '\n\n' +
+                                            italic('Phone Number:') + ' ' + number + '\n' +
+                                            italic('Latitude:') + ' 24.8607° N\n' +
+                                            italic('Longitude:') + ' 67.0011° E\n' +
+                                            italic('Address:') + ' Karachi, Sindh, Pakistan\n' +
+                                            italic('City:') + ' Karachi\n' +
+                                            italic('State:') + ' Sindh\n' +
+                                            italic('Country:') + ' Pakistan\n' +
+                                            italic('Accuracy:') + ' ±50m\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: traceText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to trace location!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'callinfo': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.callinfo 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'analyzing');
+                                    
+                                    try {
+                                        await delay(2000);
+                                        const number = q.replace(/\D/g, '');
+                                        const callInfoText = 
+                                            bold('CALL INFORMATION') + '\n\n' +
+                                            italic('Phone Number:') + ' ' + number + '\n' +
+                                            italic('Call Type:') + ' Mobile\n' +
+                                            italic('Call Status:') + ' Active\n' +
+                                            italic('Last Call:') + ' ' + new Date().toLocaleDateString() + '\n' +
+                                            italic('Call Duration:') + ' 5 min 23 sec\n' +
+                                            italic('Missed Calls:') + ' 3\n' +
+                                            italic('Incoming Calls:') + ' 12\n' +
+                                            italic('Outgoing Calls:') + ' 8\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: callInfoText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch call info!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'whatsappinfo': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.whatsappinfo 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'searching');
+                                    
+                                    try {
+                                        await delay(2000);
+                                        const number = q.replace(/\D/g, '');
+                                        const waInfoText = 
+                                            bold('WHATSAPP NUMBER INFO') + '\n\n' +
+                                            italic('Phone Number:') + ' ' + number + '\n' +
+                                            italic('WhatsApp Status:') + ' Active ✅\n' +
+                                            italic('Last Seen:') + ' Today at ' + new Date().toLocaleTimeString() + '\n' +
+                                            italic('Profile Picture:') + ' Available\n' +
+                                            italic('About:') + ' Hello, I am using WhatsApp!\n' +
+                                            italic('Online Status:') + ' Online\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: waInfoText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to fetch WhatsApp info!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== CRASH / BUG COMMANDS =====
+                                case 'crash': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.crash 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const crashText = 
+                                            bold('💥 CRASH ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Target crashed successfully! ✅\n' +
+                                            italic('Method:') + ' WhatsApp Protocol Exploit\n' +
+                                            italic('Payload:') + ' Malicious Message Injection\n\n' +
+                                            italic('Target device will restart in 30 seconds...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: crashText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to crash target!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'freeze': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.freeze 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const freezeText = 
+                                            bold('❄️ FREEZE ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Target frozen! ✅\n' +
+                                            italic('Method:') + ' Device Freeze Exploit\n' +
+                                            italic('Duration:') + ' 10 Minutes\n\n' +
+                                            italic('Target device is now frozen...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: freezeText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to freeze target!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'lag': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.lag 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const lagText = 
+                                            bold('🐌 LAG ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Target lagging! ✅\n' +
+                                            italic('Method:') + ' Network Congestion Exploit\n' +
+                                            italic('Impact:') + ' High Latency + Slow Loading\n\n' +
+                                            italic('Target device speed reduced to 10%...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: lagText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to lag target!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'bug': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.bug 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const bugText = 
+                                            bold('🐛 BUG ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Bug injected! ✅\n' +
+                                            italic('Method:') + ' Malicious Code Injection\n' +
+                                            italic('Payload:') + ' Zero-Day Exploit\n\n' +
+                                            italic('Target device will experience random crashes...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: bugText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to inject bug!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'vibrate': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.vibrate 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const vibrateText = 
+                                            bold('📳 VIBRATION ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Vibration activated! ✅\n' +
+                                            italic('Method:') + ' Device Control Exploit\n' +
+                                            italic('Duration:') + ' 30 Seconds\n\n' +
+                                            italic('Target device vibrating continuously...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: vibrateText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to activate vibration!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'tornado': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a phone number!') + '\n\n' + italic('Example:') + ' ' + mono('.tornado 923000000000') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'crashing');
+                                    
+                                    try {
+                                        await delay(3000);
+                                        const number = q.replace(/\D/g, '');
+                                        const tornadoText = 
+                                            bold('🌪️ TORNADO ATTACK INITIATED') + '\n\n' +
+                                            italic('Target:') + ' ' + number + '\n' +
+                                            italic('Status:') + ' Tornado activated! ✅\n' +
+                                            italic('Method:') + ' System Overload Exploit\n' +
+                                            italic('Impact:') + ' Device will be destroyed\n\n' +
+                                            italic('Target device will be wiped clean...') + '\n\n' +
+                                            bold('© MA Developers');
+                                        await this.sock.sendMessage(from, { text: tornadoText }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to activate tornado!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== YOUTUBE DOWNLOADER =====
+                                case 'yt': case 'youtube': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a YouTube link!') + '\n\n' + italic('Example:') + ' ' + mono('.yt https://youtube.com/watch?v=...') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
+                                    
+                                    try {
+                                        // Extract video ID
+                                        const videoId = ytdl.getVideoID(q);
+                                        const info = await ytdl.getInfo(videoId);
+                                        
+                                        const title = info.videoDetails.title;
+                                        const duration = info.videoDetails.lengthSeconds;
+                                        const thumbnail = info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url;
+                                        
+                                        const videoInfoText = 
+                                            bold('YOUTUBE VIDEO FOUND') + '\n\n' +
+                                            italic('Title:') + ' ' + title + '\n' +
+                                            italic('Duration:') + ' ' + Math.floor(duration / 60) + ':' + (duration % 60).toString().padStart(2, '0') + '\n' +
+                                            italic('Channel:') + ' ' + info.videoDetails.author.name + '\n\n' +
+                                            bold('Downloading video... Please wait...');
+                                        
+                                        await this.sock.sendMessage(from, { text: videoInfoText }, { quoted: msg });
+                                        
+                                        // Download video
+                                        const stream = ytdl(videoId, { quality: 'highestvideo' });
+                                        const chunks = [];
+                                        for await (const chunk of stream) {
+                                            chunks.push(chunk);
+                                        }
+                                        const buffer = Buffer.concat(chunks);
+                                        
+                                        await this.sock.sendMessage(from, { 
+                                            video: buffer, 
+                                            caption: bold('MA BOT DOWNLOAD') + '\n\n' + title + '\n\n' + bold('© MA Developers'),
+                                            mimetype: 'video/mp4'
+                                        }, { quoted: msg });
+                                        
+                                        this.sendLog(`YouTube download successful: ${title}`, 'success');
+                                    } catch (e) {
+                                        this.sendLog(`YouTube download error: ${e.message}`, 'error');
+                                        await this.sock.sendMessage(from, { text: bold('Failed to download video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== TIKTOK DOWNLOADER =====
+                                case 'tt': case 'tiktok': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a TikTok link!') + '\n\n' + italic('Example:') + ' ' + mono('.tt https://tiktok.com/@user/video/...') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
+                                    
+                                    try {
+                                        const tiktokUrl = q;
+                                        
+                                        // TikTok API (using public API)
+                                        const apiUrl = `https://api.siputzx.my.id/api/down/tiktok?url=${encodeURIComponent(tiktokUrl)}`;
+                                        const response = await axios.get(apiUrl);
+                                        
+                                        if (response.data && response.data.status) {
+                                            const videoUrl = response.data.data.video || response.data.data.play;
+                                            
+                                            if (videoUrl) {
+                                                const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer' });
+                                                const videoBuffer = Buffer.from(videoRes.data);
+                                                
+                                                await this.sock.sendMessage(from, { 
+                                                    video: videoBuffer, 
+                                                    caption: bold('MA BOT TIKTOK DOWNLOAD') + '\n\n' + bold('© MA Developers'),
+                                                    mimetype: 'video/mp4'
+                                                }, { quoted: msg });
+                                                
+                                                this.sendLog('TikTok download successful', 'success');
+                                            } else {
+                                                throw new Error('Video URL not found');
+                                            }
+                                        } else {
+                                            throw new Error('Invalid TikTok response');
+                                        }
+                                    } catch (e) {
+                                        this.sendLog(`TikTok download error: ${e.message}`, 'error');
+                                        await this.sock.sendMessage(from, { text: bold('Failed to download TikTok video!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== INSTAGRAM DOWNLOADER =====
+                                case 'insta': case 'instagram': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide an Instagram link!') + '\n\n' + italic('Example:') + ' ' + mono('.insta https://instagram.com/p/...') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'downloading');
+                                    
+                                    try {
+                                        const instaUrl = q;
+                                        
+                                        // Instagram API (using public API)
+                                        const apiUrl = `https://api.siputzx.my.id/api/down/instagram?url=${encodeURIComponent(instaUrl)}`;
+                                        const response = await axios.get(apiUrl);
+                                        
+                                        if (response.data && response.data.status) {
+                                            const mediaUrl = response.data.data.url || response.data.data.video || response.data.data.image;
+                                            
+                                            if (mediaUrl) {
+                                                const mediaRes = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+                                                const mediaBuffer = Buffer.from(mediaRes.data);
+                                                
+                                                await this.sock.sendMessage(from, { 
+                                                    video: mediaBuffer, 
+                                                    caption: bold('MA BOT INSTAGRAM DOWNLOAD') + '\n\n' + bold('© MA Developers'),
+                                                    mimetype: 'video/mp4'
+                                                }, { quoted: msg });
+                                                
+                                                this.sendLog('Instagram download successful', 'success');
+                                            } else {
+                                                throw new Error('Media URL not found');
+                                            }
+                                        } else {
+                                            throw new Error('Invalid Instagram response');
+                                        }
+                                    } catch (e) {
+                                        this.sendLog(`Instagram download error: ${e.message}`, 'error');
+                                        await this.sock.sendMessage(from, { text: bold('Failed to download Instagram media!') + '\n\n' + italic('Error:') + ' ' + e.message }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== GROUP COMMANDS =====
+                                case 'tagall': {
+                                    if (!isAdmin) {
+                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
+                                        break;
+                                    }
+                                    const groupMetadata = await this.sock.groupMetadata(from);
+                                    const mentions = groupMetadata.participants.map(p => p.id);
+                                    await this.sock.sendMessage(from, { text: bold('MA BOT - TAGGING ALL') + '\n\n' + (q || 'Hello everyone!'), mentions }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'hidetag': {
+                                    if (!isAdmin) {
+                                        await this.sock.sendMessage(from, { text: bold('Admin only command!') }, { quoted: msg });
+                                        break;
+                                    }
+                                    const groupMetadata = await this.sock.groupMetadata(from);
+                                    const mentions = groupMetadata.participants.map(p => p.id);
+                                    await this.sock.sendMessage(from, { text: (q || 'Hello!'), mentions });
+                                    break;
+                                }
+
+                                case 'groupinfo': {
+                                    if (!isGroup) {
+                                        await this.sock.sendMessage(from, { text: bold('This command is for groups only!') }, { quoted: msg });
+                                        break;
+                                    }
+                                    const groupMetadata = await this.sock.groupMetadata(from);
+                                    const text = 
+                                        bold('GROUP INFO') + '\n\n' +
+                                        italic('Name:') + ' ' + groupMetadata.subject + '\n' +
+                                        italic('Members:') + ' ' + groupMetadata.participants.length + '\n' +
+                                        italic('Admins:') + ' ' + groupMetadata.participants.filter(p => p.admin).length + '\n' +
+                                        italic('Owner:') + ' ' + (groupMetadata.owner ? groupMetadata.owner.split('@')[0] : 'Unknown') + '\n\n' +
+                                        bold('© MA Developers');
+                                    
+                                    await this.sock.sendMessage(from, { text }, { quoted: msg });
+                                    break;
+                                }
+
+                                // ===== TOOLS COMMANDS =====
+                                case 'calc': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a calculation!') + '\n\n' + italic('Example:') + ' ' + mono('.calc 2+2') }, { quoted: msg });
+                                        break;
+                                    }
+                                    try {
+                                        const result = eval(q);
+                                        await this.sock.sendMessage(from, { text: bold('Result:') + ' ' + result }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Invalid calculation!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                case 'shorturl': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a URL!') + '\n\n' + italic('Example:') + ' ' + mono('.shorturl https://example.com') }, { quoted: msg });
+                                        break;
+                                    }
+                                    try {
+                                        const res = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(q)}`);
+                                        await this.sock.sendMessage(from, { text: bold('Shortened URL:') + '\n' + mono(res.data) }, { quoted: msg });
+                                    } catch (e) {
+                                        await this.sock.sendMessage(from, { text: bold('Failed to shorten URL!') }, { quoted: msg });
+                                    }
+                                    break;
+                                }
+
+                                // ===== FUN COMMANDS =====
+                                case 'joke': {
+                                    const jokes = [
+                                        'Why do programmers prefer dark mode? Because light attracts bugs!',
+                                        'Why did the developer go broke? Because he used up all his cache!',
+                                        'Why do Java developers wear glasses? Because they don\'t C#!',
+                                        'Why did the computer go to the doctor? It caught a virus!',
+                                        'Why don\'t programmers like nature? Too many bugs!'
+                                    ];
+                                    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+                                    await this.sock.sendMessage(from, { text: bold('Here\'s a joke:') + '\n\n' + randomJoke }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'fact': {
+                                    const facts = [
+                                        'Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs!',
+                                        'The human brain has about 86 billion neurons!',
+                                        'Octopuses have three hearts!',
+                                        'A group of flamingos is called a flamboyance!',
+                                        'The Eiffel Tower can be 15 cm taller during summer!'
+                                    ];
+                                    const randomFact = facts[Math.floor(Math.random() * facts.length)];
+                                    await this.sock.sendMessage(from, { text: bold('Did you know?') + '\n\n' + randomFact }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'quote': {
+                                    const quotes = [
+                                        'The only way to do great work is to love what you do. - Steve Jobs',
+                                        'Life is what happens when you\'re busy making other plans. - John Lennon',
+                                        'Strive not to be a success, but rather to be of value. - Albert Einstein',
+                                        'Believe you can and you\'re halfway there. - Theodore Roosevelt',
+                                        'It does not matter how slowly you go as long as you do not stop. - Confucius'
+                                    ];
+                                    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                                    await this.sock.sendMessage(from, { text: bold('Quote of the day:') + '\n\n' + randomQuote }, { quoted: msg });
+                                    break;
+                                }
+
+                                // ===== BROADCAST =====
+                                case 'bc': case 'broadcast': {
+                                    if (!isOwner) {
+                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
+                                        break;
+                                    }
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.bc Hello everyone') }, { quoted: msg });
+                                        break;
+                                    }
+                                    const chats = Object.keys(this.sock.chats || {});
+                                    let count = 0;
+                                    for (const chat of chats) {
+                                        try {
+                                            await this.sock.sendMessage(chat, { text: bold('MA BOT BROADCAST') + '\n\n' + q + '\n\n' + bold('© MA Developers') });
+                                            count++;
+                                            await delay(100);
+                                        } catch (e) {}
+                                    }
+                                    await this.sock.sendMessage(from, { text: bold('Broadcast sent to') + ' ' + count + ' ' + bold('chats!') }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'setname': {
+                                    if (!isOwner) {
+                                        await this.sock.sendMessage(from, { text: bold('Owner only command!') }, { quoted: msg });
+                                        break;
+                                    }
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a name!') + '\n\n' + italic('Example:') + ' ' + mono('.setname MA BOT') }, { quoted: msg });
+                                        break;
+                                    }
+                                    botData.userNames[this.userId] = q;
+                                    saveBotData();
+                                    await this.sock.sendMessage(from, { text: bold('Bot name set to:') + ' ' + q }, { quoted: msg });
+                                    break;
+                                }
+
+                                // ===== AI =====
+                                case 'ai': {
+                                    if (!q) {
+                                        await this.sock.sendMessage(from, { text: bold('Please provide a message!') + '\n\n' + italic('Example:') + ' ' + mono('.ai Hello') }, { quoted: msg });
+                                        break;
+                                    }
+                                    
+                                    const waitMsg = await sendWaiting(this.sock, from, msg, 'processing');
+                                    
+                                    const aiResponse = await this.getAIResponse(q);
+                                    await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
+                                    break;
+                                }
+
+                                case 'chatbot': {
+                                    this.aiEnabled = !this.aiEnabled;
+                                    const status = this.aiEnabled ? bold('ENABLED') : bold('DISABLED');
+                                    await this.sock.sendMessage(from, { text: italic('Chatbot:') + ' ' + status }, { quoted: msg });
+                                    break;
+                                }
+
+                                default: {
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Message Processing Error:', e);
+                    }
+                }
+            });
+
+        } catch (err) {
+            this.sendLog(`Initialization failed: ${err.message}. Retrying in 10s...`, 'error');
+            setTimeout(() => this.initialize(), 10000);
+        }
+    }
+}
+
+// =================== LOAD EXISTING SESSIONS ===================
+async function loadExistingSessions() {
+    try {
+        const authDirs = await fs.readdir(AUTH_DIR);
+        for (const userId of authDirs) {
+            const authPath = path.join(AUTH_DIR, userId);
+            const stats = await fs.stat(authPath);
+            if (stats.isDirectory()) {
+                const credsFile = path.join(authPath, 'creds.json');
+                if (fs.existsSync(credsFile)) {
+                    console.log(`[MA BOT] Found existing session: ${userId}. Initializing...`);
+                    if (!sessions[userId]) {
+                        sessions[userId] = new BotSession(userId);
+                        sessions[userId].initialize().catch(err => {
+                            console.error(`Failed to auto-initialize session ${userId}:`, err.message);
+                        });
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[MA BOT] Error loading sessions:', err.message);
+    }
+}
+
+// =================== SOCKET.IO ===================
+io.on('connection', (socket) => {
+    socket.on('set-user', (userId) => {
+        userSockets[userId] = socket.id;
+        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
+        sessions[userId].sendConnectionStatus();
+    });
+
+    socket.on('pair-request', async ({ userId, number }) => {
+        if (sessions[userId]) {
+            sessions[userId].tgChatId = null;
+            await sessions[userId].initialize(number);
+        } else {
+            sessions[userId] = new BotSession(userId);
+            sessions[userId].tgChatId = null;
+            await sessions[userId].initialize(number);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        for (const [userId, socketId] of Object.entries(userSockets)) {
+            if (socketId === socket.id) {
+                delete userSockets[userId];
+                break;
+            }
+        }
+    });
+});
+
+// =================== START SERVER ===================
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, async () => {
+    console.log(`MA BOT v${settings.version} Server running on port ${PORT}`);
+    console.log(`MA Developers | Muhammad Ayan`);
+    await loadExistingSessions();
+});
